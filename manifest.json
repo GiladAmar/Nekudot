@@ -1,0 +1,32 @@
+{
+  "name": "Getting Started Example",
+  "description": "Add 'nekudot' or diacritics to hebrew text.",
+  "homepage_url": "https://github.com/GiladAmar",
+
+  "version": "1.0",
+  "manifest_version": 3,
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": ["storage", "activeTab", "scripting","declarativeContent",
+    "webRequest",
+    "tabs"],
+  "host_permissions": ["https://nakdan-2-0.loadbalancer.dicta.org.il/",
+  "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@2.4.0/dist/"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "/images/get_started16.png",
+      "32": "/images/get_started32.png",
+      "48": "/images/get_started48.png",
+      "128": "/images/get_started128.png"
+    }
+  },
+  "icons": {
+    "16": "/images/get_started16.png",
+    "32": "/images/get_started32.png",
+    "48": "/images/get_started48.png",
+    "128": "/images/get_started128.png"
+  },
+  "options_page": "options.html"
+}
