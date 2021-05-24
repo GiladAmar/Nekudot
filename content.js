@@ -1,4 +1,6 @@
-RAFE = '\u05BF';
+import * as tf from '@tensorflow/tfjs'
+
+const RAFE = '\u05BF';
 const niqqud_array = ['', '', 'ְ', 'ֱ', 'ֲ', 'ֳ', 'ִ', 'ֵ', 'ֶ', 'ַ', 'ָ', 'ֹ', 'ֺ', 'ֻ', 'ּ', 'ַ'];
 const dagesh_array = ['', '', 'ּ'];
 const sin_array = ['', '', 'ׁ', 'ׂ'];
@@ -92,52 +94,30 @@ function remove_niqqud(text) {
 }
 
 async function load_model() {
-    const bar = new Nanobar();
+
     console.time('load model');
-    const model = await tf.loadLayersModel('./final_model/model.json', {
-        onProgress: (fraction) => {
-            bar.go(100 * fraction);
-        }
-    });
+    const model = await tf.loadLayersModel(chrome.runtime.getURL("model/model.json"));
     console.timeEnd('load model');
-    model.summary();
 
-    const input_text = document.getElementById("undotted_text");
-    const dotButton = document.getElementById("perform_dot");
-
-    function click() {
-        // toggle state-machine
-        if (dotButton.textContent !== "נקד") {
-            input_text.removeAttribute("hidden");
-            dotButton.textContent = "נקד";
-        } else {
-            console.time('to_input');
-            const undotted_text = remove_niqqud(input_text.value);
-            const input = split_to_rows(undotted_text.replace(/./gms, normalize), 90);
-            console.log(input);
-            console.timeEnd('to_input');
-
-            console.time('predict');
-            const prediction = model.predict(tf.tensor2d(input), {batchSize: 64});
-            console.timeEnd('predict');
-
-            console.time('to_text');
-            const res = prediction_to_text([].concat(...input), prediction, undotted_text);
-            console.timeEnd('to_text');
-
-            console.time('editor');
-            update_dotted(res);
-            console.timeEnd('editor');
-
-            input_text.setAttribute("hidden", "true");
-            dotButton.textContent = "עוד";
-        }
-    }
-
-    dotButton.disabled = false;
-
-    dotButton.addEventListener("click", () => click());
-    click();
+    model.summary()
+    return model
 }
+console.log('pre load model')
+const model = load_model()
+console.log("model", model)
 
+
+function predict(input_test) {
+    console.time('to_input');
+    const undotted_text = remove_niqqud(input_text);
+    const input = split_to_rows(undotted_text.replace(/./gms, normalize), 90);
+    console.log(input);
+    console.timeEnd('to_input');
+
+    console.time('predict');
+    const prediction = model.predict(tf.tensor2d(input), {batchSize: 64});
+    console.timeEnd('predict');
+
+    return prediction_to_text([].concat(...input), prediction, undotted_text);
+}
 console.log("I'm the content script")
