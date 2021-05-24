@@ -1,5 +1,4 @@
-﻿// Initialize button with users's prefered color
-
+﻿// Initialize button with user's preferred color
 
 let vowelize = document.getElementById("vowelize");
 
@@ -12,22 +11,6 @@ vowelize.addEventListener("click", async () => {
         function: setPageBackgroundColor,
     });
 });
-
-const contains_heb = (str) => (/[\u0590-\u05FF]/).test(str)
-
-const getAllHebrewElements = () => {
-
-    // To select all elements containing hebrew text.
-    // Abandoned in favour of only replacing highlighted text.
-    var textTags = document.querySelectorAll("h1, h2, h3, h4, h5, p, li, td, caption, span, a");
-
-    for (let i = 0; i < textTags.length; i++) {
-        if (contains_heb(textTags[i].innerHTML)) {
-            // console.log(textTags[i].textContent)
-        }
-    }
-    return textTags
-}
 
 
 // The body of this function will be executed as a content script inside the
@@ -199,9 +182,10 @@ function setPageBackgroundColor() {
     }
 
     let selection = window.getSelection();
+    console.log(selection)
 
     const range = selection.getRangeAt(0)
-    const selectedNodes = getSelectedNodes(range)//.filter(hasText)
+    const selectedNodes = getSelectedNodes(range)
 
     const selectedHebrew = range.toString()
     console.log(selectedHebrew)
@@ -216,6 +200,9 @@ function setPageBackgroundColor() {
         "patachma": false,
         "keepmetagim": true,
     }
+
+    // To use tf model here, the model must be loaded in another script e.g content.js /background.js
+    // then messages parsed back and forth as in https://developer.chrome.com/docs/extensions/mv3/messaging/
 
     fetch("https://nakdan-2-0.loadbalancer.dicta.org.il/api", {
         method: "POST",

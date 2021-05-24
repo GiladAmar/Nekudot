@@ -49,3 +49,19 @@ function splitResultWords(result) {
 let testArray = ['1', '23 45', '45.', '6']
 
 console.log(splitResultWords(testArray))
+
+const contains_heb = (str) => (/[\u0590-\u05FF]/).test(str)
+
+const getAllHebrewElements = () => {
+
+    // To select all elements containing hebrew text.
+    // Abandoned in favour of only replacing highlighted text.
+    var textTags = document.querySelectorAll("h1, h2, h3, h4, h5, p, li, td, caption, span, a");
+
+    for (let i = 0; i < textTags.length; i++) {
+        if (contains_heb(textTags[i].innerHTML)) {
+            // console.log(textTags[i].textContent)
+        }
+    }
+    return textTags
+}

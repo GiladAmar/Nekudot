@@ -139,3 +139,5 @@ async function load_model() {
     dotButton.addEventListener("click", () => click());
     click();
 }
+
+console.log("I'm the content script")
