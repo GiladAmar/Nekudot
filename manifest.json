@@ -1,44 +1,40 @@
 {
   "name": "Nekudot",
   "version": "1.0",
-  "description": "Add 'nekudot' or diacritics to hebrew text.",
+  "description": "Add 'nekudot' or diacritics to hebrew text. Just highlight the hebrew text and click the button on the extension icon.",
   "homepage_url": "https://github.com/GiladAmar",
   "manifest_version": 3,
-  "minimum_chrome_version": "31",
   "background": {
     "service_worker": "background.js"
   },
   "permissions": [
     "activeTab",
-    "declarativeContent",
-    "webRequest",
-    "storage",
     "scripting"
   ],
-"web_accessible_resources": [
-        {
-            "matches": ["<all_urls>"],
-            "resources": ["model/*"]
-        }
-    ],
-  "host_permissions": [
-    "https://nakdan-2-0.loadbalancer.dicta.org.il/",
-    "*://*/*"
+  "web_accessible_resources": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "resources": [
+        "model/*"
+      ]
+    }
   ],
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
-      "16": "/images/get_started16.png",
-      "32": "/images/get_started32.png",
-      "48": "/images/get_started48.png",
-      "128": "/images/get_started128.png"
+      "16": "/images/aleph_16.png",
+      "32": "/images/aleph_32.png",
+      "48": "/images/aleph_48.png",
+      "128": "/images/aleph_128.png"
     }
   },
   "icons": {
-    "16": "/images/get_started16.png",
-    "32": "/images/get_started32.png",
-    "48": "/images/get_started48.png",
-    "128": "/images/get_started128.png"
+    "16": "/images/aleph_16.png",
+    "32": "/images/aleph_32.png",
+    "48": "/images/aleph_48.png",
+    "128": "/images/aleph_128.png"
   },
   "content_scripts": [
     {
@@ -47,8 +43,7 @@
         "https://*/*"
       ],
       "js": [
-        "popup.js",
-        "content.js"
+        "popup.js"
       ],
       "all_frames": true,
       "run_at": "document_start"
