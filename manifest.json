@@ -1,7 +1,7 @@
 {
   "name": "Nekudot",
   "version": "1.0",
-  "description": "Add 'nekudot' or diacritics to hebrew text. Just highlight the hebrew text and click the button on the extension icon.",
+  "description": "Add `nekudot' to hebrew text.",
   "homepage_url": "https://github.com/GiladAmar",
   "manifest_version": 3,
   "background": {
