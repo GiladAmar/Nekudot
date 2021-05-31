@@ -1,23 +1,22 @@
 {
   "name": "nekudot",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Add 'nekudot' or diacritics to hebrew text.",
   "keywords": [
     "tensorflow",
     "hebrew",
     "diacritics",
     "nekudot"
-
   ],
   "dependencies": {
     "@tensorflow/tfjs": "^3.6.0"
   },
   "scripts": {
-    "copy": "cp manifest.json popup.html button.css dist/ && cp images/* dist/images/ && cp model/* dist/model/",
+    "copy": "cp manifest.json button.css dist/ && cp images/* dist/images/ && cp model/* dist/model/",
     "prebuild": "rm -rf dist",
     "prebuild-dev": "rm -rf dist",
-    "build": "parcel build popup.js background.js -d dist -o popup --no-minify && mkdir dist/images && mkdir dist/model && npm run copy",
-    "build-dev": "NODE_ENV=development parcel build popup.js background.js -d dist -o popup --no-minify && mkdir dist/images && mkdir dist/model && npm run copy"
+    "build": "parcel build content.js background.js -d dist -o content --no-minify && mkdir dist/images && mkdir dist/model && npm run copy",
+    "build-dev": "NODE_ENV=development parcel build content.js background.js -d dist -o content --no-minify && mkdir dist/images && mkdir dist/model && npm run copy"
   },
   "devDependencies": {
     "@babel/plugin-transform-runtime": "^7.13.15",
