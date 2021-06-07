@@ -12,7 +12,7 @@
     "@tensorflow/tfjs": "^3.6.0"
   },
   "scripts": {
-    "copy": "cp manifest.json button.css dist/ && cp images/* dist/images/ && cp model/* dist/model/",
+    "copy": "cp manifest.json dist/ && cp images/* dist/images/ && cp model/* dist/model/",
     "prebuild": "rm -rf dist",
     "prebuild-dev": "rm -rf dist",
     "build": "parcel build content.js background.js -d dist -o content --no-minify && mkdir dist/images && mkdir dist/model && npm run copy",

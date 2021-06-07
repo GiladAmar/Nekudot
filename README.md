@@ -1,7 +1,16 @@
+Apologies for the shamefully incomplete README.
+
+You can access the published extension at: https://chrome.google.com/webstore/detail/nekudot/lifcgpfijhjloceldomdfbkjghkdnenk
+
+To setup locally install the requirements:
+
 `npm i`
+
+Then create the compiled code:
 
 `npm run build`
 
-load unpacked
+Finally install the package by following these instructions:
+https://webkul.com/blog/how-to-install-the-unpacked-extension-in-chrome/
 
-highlight and click on button
+Use the dist/ folder as the source.
