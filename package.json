@@ -1,7 +1,7 @@
 {
   "name": "nekudot",
-  "version": "1.1.0",
-  "description": "Add 'nekudot' or diacritics to hebrew text.",
+  "version": "1.1.1",
+  "description": "Add 'nekudot' or diacritics to Hebrew text.",
   "keywords": [
     "tensorflow",
     "hebrew",
@@ -9,7 +9,7 @@
     "nekudot"
   ],
   "dependencies": {
-    "@tensorflow/tfjs": "3.6.0"
+    "@tensorflow/tfjs": "4.11.0"
   },
   "scripts": {
     "copy": "cp manifest.json dist/ && cp images/* dist/images/ && cp model/* dist/model/",
@@ -19,13 +19,13 @@
     "build-dev": "NODE_ENV=development parcel build content.js background.js -d dist -o content --no-minify && mkdir dist/images && mkdir dist/model && npm run copy"
   },
   "devDependencies": {
-    "@babel/plugin-transform-runtime": "7.14.3",
-    "clang-format": "1.5.0",
-    "babel-core": "6.26.3",
-    "babel-plugin-transform-runtime": "6.23.0",
-    "babel-polyfill": "6.26.0",
-    "babel-preset-env": "1.7.0",
-    "parcel-bundler": "1.12.5"
+    "@babel/plugin-transform-runtime": "^7.14.3",
+    "babel-core": "^6.26.3",
+    "babel-plugin-transform-runtime": "^6.23.0",
+    "babel-polyfill": "^6.26.0",
+    "babel-preset-env": "^1.7.0",
+    "clang-format": "^1.8.0",
+    "parcel-bundler": "^1.12.5"
   },
   "author": "Gilad Amar",
   "license": "MIT",
