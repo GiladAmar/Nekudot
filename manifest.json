@@ -9,17 +9,11 @@
   },
   "permissions": [
     "activeTab",
-    "scripting"
+    "scripting",
+    "notifications"
   ],
-  "web_accessible_resources": [
-    {
-      "matches": [
-        "<all_urls>"
-      ],
-      "resources": [
-        "model/*"
-      ]
-    }
+  "host_permissions": [
+    "http://localhost:5000/*"
   ],
   "action": {
     "default_icon": {

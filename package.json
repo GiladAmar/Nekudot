@@ -9,11 +9,9 @@
     "tashkeel",
     "harakat"
   ],
-  "dependencies": {
-    "@tensorflow/tfjs": "^4.16.0"
-  },
+  "dependencies": {},
   "scripts": {
-    "copy": "cp manifest.json dist/ && cp -R images dist/images && cp -R model dist/model",
+    "copy": "cp manifest.json dist/ && cp -R images dist/images",
     "prebuild": "rm -rf dist",
     "prebuild-dev": "rm -rf dist",
     "build": "parcel build content.js background.js --dist-dir dist && npm run copy",

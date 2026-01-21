@@ -1,147 +1,128 @@
-import * as tf from '@tensorflow/tfjs';
+/**
+ * Arabic Tashkeel Extension - Background Script
+ *
+ * This script handles communication with the local CATT server
+ * for Arabic text diacritization.
+ */
 
-// Arabic diacritical marks (harakat)
-const FATHA = '\u064E';      // َ
-const DAMMA = '\u064F';      // ُ
-const KASRA = '\u0650';      // ِ
-const SUKUN = '\u0652';      // ْ
-const SHADDA = '\u0651';     // ّ
-const TANWEEN_FATH = '\u064B'; // ً
-const TANWEEN_DAMM = '\u064C'; // ٌ
-const TANWEEN_KASR = '\u064D'; // ٍ
+// Server configuration
+const SERVER_URL = 'http://localhost:5000';
+const DIACRITIZE_ENDPOINT = `${SERVER_URL}/diacritize`;
+const HEALTH_ENDPOINT = `${SERVER_URL}/health`;
 
-// Diacritics arrays for model predictions
-const harakat_array = ['', '', FATHA, DAMMA, KASRA, SUKUN, TANWEEN_FATH, TANWEEN_DAMM, TANWEEN_KASR];
-const shadda_array = ['', '', SHADDA];
+// Server health status
+let serverHealthy = false;
 
-// Arabic letters (including all forms and variations)
-const ARABIC_LETTERS = ['ا', 'أ', 'إ', 'آ', 'ء', 'ب', 'ت', 'ث', 'ج', 'ح', 'خ', 'د', 'ذ', 'ر', 'ز', 'س', 'ش', 'ص', 'ض', 'ط', 'ظ', 'ع', 'غ', 'ف', 'ق', 'ك', 'ل', 'م', 'ن', 'ه', 'و', 'ؤ', 'ي', 'ئ', 'ى', 'ة'];
-const VALID_LETTERS = [' ', '!', '"', "'", '(', ')', ',', '-', '.', ':', ';', '?', '،', '؛', '؟'].concat(ARABIC_LETTERS);
-const SPECIAL_TOKENS = ['A', 'O', '5'];  // A=Arabic special, O=Other, 5=Digits
-const ALL_TOKENS = [''].concat(SPECIAL_TOKENS).concat(VALID_LETTERS);
+/**
+ * Check if the local server is running and healthy
+ */
+async function checkServerHealth() {
+    try {
+        const response = await fetch(HEALTH_ENDPOINT, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
 
-function normalize(c) {
-    if (c === '\n' || c === '\t') return ' ';
-    if (VALID_LETTERS.includes(c)) return c;
-    if (['־', '‒', '–', '—', '―', '−'].includes(c)) return '-';
-    if (c === '[') return '(';
-    if (c === ']') return ')';
-    if (['\u00B4', '\u2018', '\u2019'].includes(c)) return "'";
-    if (['\u201C', '\u201D'].includes(c)) return '"';
-    if ('0123456789'.includes(c)) return '5';
-    if (['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'].includes(c)) return '5'; // Arabic-Indic digits
-    if (c === '…') return ',';
-    // Normalize Arabic letter variations
-    if (['أ', 'إ', 'آ'].includes(c)) return 'ا';
-    if (c === 'ة') return 'ه';
-    if (c === 'ى') return 'ي';
-    if (c === 'ؤ') return 'و';
-    if (c === 'ئ') return 'ي';
-    return 'O';
-}
-
-function split_to_rows(text, MAXLEN) {
-    const space = ALL_TOKENS.indexOf(" ");
-    const arr = text.split(" ").map(s => Array.from(s).map(c => ALL_TOKENS.indexOf(c)));
-    let line = [];
-    const rows = [line];
-    for (let i = 0; i < arr.length; i++) {
-        if (arr[i].length + line.length + 1 > MAXLEN) {
-            while (line.length < MAXLEN)
-                line.push(0);
-            line = [];
-            rows.push(line);
+        if (response.ok) {
+            const data = await response.json();
+            serverHealthy = data.model_loaded;
+            console.log('✅ Server health check passed:', data);
+            return true;
+        } else {
+            serverHealthy = false;
+            console.error('❌ Server health check failed:', response.status);
+            return false;
         }
-        line.push(...arr[i]);
-        line.push(space);
+    } catch (error) {
+        serverHealthy = false;
+        console.error('❌ Could not connect to server:', error.message);
+        return false;
     }
-    while (line.length < MAXLEN)
-        line.push(0);
-    return rows;
 }
 
-function can_shadda(letter) {
-    // Most Arabic letters can receive shadda (doubling mark)
-    return ARABIC_LETTERS.includes(letter) && letter !== 'ا' && letter !== 'أ' && letter !== 'إ' && letter !== 'آ' && letter !== 'ء';
-}
+/**
+ * Diacritize Arabic text using the local CATT server
+ */
+async function diacritizeText(text) {
+    try {
+        const response = await fetch(DIACRITIZE_ENDPOINT, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ text: text })
+        });
 
-function can_harakat(letter) {
-    // All Arabic letters can receive harakat (short vowels)
-    return ARABIC_LETTERS.includes(letter);
-}
-
-function prediction_to_text(input, prediction, undotted_text) {
-
-    function from_categorical(arr) {
-        return arr.argMax(-1).reshape([-1]).arraySync().filter((e, i) => input[i] > 0);
-    }
-
-    const [harakat, shadda] = prediction;
-    const len = undotted_text.length;
-    const harakat_result = from_categorical(harakat);
-    const shadda_result = from_categorical(shadda);
-
-    let output = [];
-    for (let i = 0; i < len; i++) {
-        const c = undotted_text[i];
-        const fresh = {char: c, harakat: '', shadda: ''};
-
-        if (ARABIC_LETTERS.includes(c)) {
-            if (can_harakat(c))
-                fresh.harakat = harakat_array[harakat_result[i]];
-            if (can_shadda(c))
-                fresh.shadda = shadda_array[shadda_result[i]];
+        if (!response.ok) {
+            throw new Error(`Server returned ${response.status}: ${response.statusText}`);
         }
-        output.push(fresh);
+
+        const data = await response.json();
+        return data.diacritized;
+    } catch (error) {
+        console.error('❌ Diacritization error:', error);
+        throw error;
     }
-    return output;
 }
 
-function remove_tashkeel(text) {
-    // Remove Arabic diacritical marks (tashkeel) - Unicode range U+064B to U+0652
-    return text.replace(/[\u064B-\u0652]/g, '');
-}
+/**
+ * Handle extension icon click
+ */
+chrome.action.onClicked.addListener(async (tab) => {
+    // Check server health before injecting content script
+    const healthy = await checkServerHealth();
 
-function to_text(item) {
-    const c = item.char === '\n' ? '\r\n' : item.char;
-    // In Arabic, shadda comes before harakat
-    return c + (item.shadda || '') + (item.harakat || '');
-}
+    if (!healthy) {
+        // Show notification if server is not running
+        chrome.notifications.create({
+            type: 'basic',
+            iconUrl: '/images/aleph_48.png',
+            title: 'Arabic Tashkeel Server Not Running',
+            message: 'Please start the local server first. Run: python3 server/tashkeel_server.py'
+        });
+        return;
+    }
 
-async function load_model() {
-    const model = await tf.loadLayersModel(chrome.runtime.getURL("model/model.json"));
-
-    model.summary()
-    return model
-}
-
-const model = load_model()
-
-chrome.action.onClicked.addListener(tab => {
+    // Inject and execute content script
     chrome.scripting.executeScript({
-        target: {tabId: tab.id},
+        target: { tabId: tab.id },
         files: ['content.js'],
     });
 });
 
+/**
+ * Handle messages from content script
+ */
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.text) {
+        // Process the text asynchronously
+        diacritizeText(request.text)
+            .then(result => {
+                sendResponse({ processed: result });
+            })
+            .catch(error => {
+                sendResponse({
+                    processed: 'error',
+                    error: error.message
+                });
+            });
 
-chrome.runtime.onMessage.addListener(
-    function (request, sender, sendResponse) {
-
-        model.then(function (res) {
-            const undotted_text = remove_tashkeel(request.text);
-            const input = split_to_rows(undotted_text.replace(/./gms, normalize), 90);
-            const prediction = res.predict(tf.tensor2d(input), {batchSize: 64});
-
-            let result = prediction_to_text([].concat(...input), prediction, undotted_text);
-
-            result = result.map(to_text).join("")
-            sendResponse({processed: result});
-
-        }, function (err) {
-            sendResponse({processed: 'error'});
-        });
-        return true
+        // Return true to indicate async response
+        return true;
     }
-);
+});
 
+/**
+ * Check server health on extension startup
+ */
+chrome.runtime.onStartup.addListener(() => {
+    checkServerHealth();
+});
+
+// Initial health check
+checkServerHealth();
+
+console.log('🚀 Arabic Tashkeel Extension loaded');
+console.log('📡 Server URL:', SERVER_URL);
