@@ -1,7 +1,7 @@
 {
-  "name": "Nekudot",
-  "version": "1.2",
-  "description": "Add `nekudot' to hebrew text.",
+  "name": "Arabic Tashkeel",
+  "version": "1.0",
+  "description": "Add diacritical marks (tashkeel) to Arabic text.",
   "homepage_url": "https://github.com/GiladAmar",
   "manifest_version": 3,
   "background": {

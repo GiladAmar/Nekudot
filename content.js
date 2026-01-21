@@ -47,7 +47,8 @@ function getSelectedNodes(range) {
  * @returns {boolean}
  */
 function hasText(node) {
-    return /\S/.test(node.textContent) && (/[\u0590-\u05FF]/).test(node.textContent)
+    // Check for non-whitespace text and Arabic characters (U+0600-U+06FF)
+    return /\S/.test(node.textContent) && (/[\u0600-\u06FF]/).test(node.textContent)
 }
 
 function splitWords(string) {
@@ -151,19 +152,19 @@ function buildString(selection, selectedNodes) {
     return builtString
 }
 
-function setNekudot() {
+function setTashkeel() {
     let selection = window.getSelection()
 
     if (selection.anchorNode === null) return
 
     const range = selection.getRangeAt(0)
     const selectedNodes = getSelectedNodes(range)
-    const selectedHebrew = buildString(selection, selectedNodes)
+    const selectedArabic = buildString(selection, selectedNodes)
 
-    if (selectedHebrew.trim() === '')
+    if (selectedArabic.trim() === '')
         return
 
-    chrome.runtime.sendMessage({text: selectedHebrew}, function (result) {
+    chrome.runtime.sendMessage({text: selectedArabic}, function (result) {
         let resultText = result['processed']
         resultText = splitResultWords([resultText])
         insertResult(resultText, selection, selectedNodes)
@@ -171,4 +172,4 @@ function setNekudot() {
     })
 }
 
-setNekudot()
+setTashkeel()

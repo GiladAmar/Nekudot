@@ -1,12 +1,13 @@
 {
-  "name": "nekudot",
-  "version": "1.2",
-  "description": "Add 'nekudot' or diacritics to Hebrew text.",
+  "name": "arabic-tashkeel",
+  "version": "1.0",
+  "description": "Add 'tashkeel' or diacritical marks to Arabic text.",
   "keywords": [
     "tensorflow",
-    "hebrew",
+    "arabic",
     "diacritics",
-    "nekudot"
+    "tashkeel",
+    "harakat"
   ],
   "dependencies": {
     "@tensorflow/tfjs": "^4.16.0"
