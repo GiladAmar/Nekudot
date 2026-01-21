@@ -1,12 +1,14 @@
 # Arabic Tashkeel - Chrome Extension
 
-A Google Chrome extension that automatically adds diacritical marks (tashkeel/harakat) to Arabic text using the state-of-the-art CATT (Character-Aware Transformer for Tashkeel) model.
+A Google Chrome extension that automatically adds diacritical marks (tashkeel/harakat) to Arabic text using the state-of-the-art CATT (Character-Aware Transformer for Tashkeel) model running directly in your browser.
 
 ## Features
 
 - **Automatic Diacritization**: Select any Arabic text on a webpage and add diacritical marks with one click
 - **CATT Model**: Uses the advanced Character-Aware Transformer model from [abjadai/catt](https://github.com/abjadai/catt)
-- **Local Processing**: All processing happens on your local machine - no data sent to external servers
+- **Fully Local**: All processing happens in your browser using ONNX.js - no external servers required
+- **Privacy-Focused**: No data leaves your machine
+- **Works Offline**: Once loaded, works without internet connection
 - **Works Everywhere**: Compatible with any website containing Arabic text
 
 ## Diacritical Marks Supported
@@ -18,28 +20,30 @@ A Google Chrome extension that automatically adds diacritical marks (tashkeel/ha
 
 ## Architecture
 
-This extension uses a **client-server architecture**:
+This extension runs entirely in your browser using:
 
-- **Chrome Extension** (client): Handles text selection and UI interaction
-- **Python Server** (backend): Runs the CATT model for diacritization
+- **ONNX.js**: JavaScript runtime for ONNX models
+- **CATT Model**: State-of-the-art transformer model exported to ONNX format
+- **Custom Tokenizer**: JavaScript port of the CATT tokenizer with Buckwalter transliteration
+- **No External Dependencies**: Everything runs locally in Chrome
 
 ## Installation
 
-### 1. Set Up the Python Server
+### 1. Set Up the ONNX Models
 
-First, install the Python dependencies:
+The extension requires CATT models in ONNX format. See [MODEL_SETUP.md](MODEL_SETUP.md) for detailed instructions.
+
+**Quick setup:**
 
 ```bash
-cd server
-pip install -r requirements.txt
+# Install Python dependencies for export
+pip install catt-tashkeel torch onnx onnxruntime
+
+# Export models to ONNX format
+python3 scripts/export_onnx.py
 ```
 
-This will install:
-- Flask (web server)
-- Flask-CORS (for extension communication)
-- catt-tashkeel (Arabic diacritization model)
-
-The first time you run the server, it will automatically download the pre-trained CATT model (~500MB).
+This will create `model/encoder.onnx` and `model/decoder.onnx` (~500MB total).
 
 ### 2. Build the Chrome Extension
 
@@ -60,130 +64,127 @@ npm run build
 
 ## Usage
 
-### 1. Start the Python Server
-
-Before using the extension, start the local server:
-
-```bash
-cd server
-python3 tashkeel_server.py
-```
-
-You should see:
-```
-==================================================
-Arabic Tashkeel Server
-==================================================
-✅ Loaded model successfully!
-🚀 Starting server on http://localhost:5000
-```
-
-Keep this server running while using the extension.
-
-### 2. Diacritize Text
-
 1. Navigate to any webpage with Arabic text
 2. Select the Arabic text you want to diacritize
 3. Click the extension icon in your Chrome toolbar
 4. The selected text will be replaced with the diacritized version
 
-**Note**: If the server is not running, the extension will show a notification asking you to start it.
-
-## API
-
-The Python server exposes a simple REST API:
-
-### Health Check
-```bash
-curl http://localhost:5000/health
-```
-
-### Diacritize Text
-```bash
-curl -X POST http://localhost:5000/diacritize \
-  -H "Content-Type: application/json" \
-  -d '{"text": "وقالت مجلة نيوزويك الأمريكية"}'
-```
-
-Response:
-```json
-{
-  "original": "وقالت مجلة نيوزويك الأمريكية",
-  "diacritized": "وَقَالَتْ مَجَلَّةُ نْيُوزْوِيكَ الْأَمْرِيكِيَّةُ"
-}
-```
+**Note**: The first time you use the extension, it will load the ONNX models (~500MB) which may take a few seconds.
 
 ## Development
 
-### Chrome Extension
+### Project Structure
 
-**Build Scripts:**
+```
+├── background.js              # ONNX.js inference engine
+├── content.js                 # DOM manipulation and text selection
+├── tashkeel_tokenizer.js      # Tokenization and text processing
+├── buckwalter.js              # Arabic-Buckwalter transliteration
+├── manifest.json              # Extension configuration
+├── model/                     # ONNX model files
+│   ├── encoder.onnx           # Transformer encoder
+│   └── decoder.onnx           # Linear decoder
+└── scripts/
+    └── export_onnx.py         # Model export script
+```
+
+### Build Scripts
+
 - `npm run build` - Production build
 - `npm run build-dev` - Development build with source maps
+- `npm install` - Install dependencies
 
-**Structure:**
-- `background.js` - Communicates with the Python server
-- `content.js` - Handles text selection and replacement on web pages
-- `manifest.json` - Extension configuration
+### Technical Components
 
-### Python Server
+**Tokenizer** (`tashkeel_tokenizer.js`):
+- Implements the complete CATT tokenization pipeline
+- Handles Buckwalter transliteration (Arabic ↔ ASCII)
+- Splits text into letters and diacritics
+- Encodes/decodes to/from token IDs
 
-**Files:**
-- `server/tashkeel_server.py` - Flask server for CATT model inference
-- `server/requirements.txt` - Python dependencies
+**Buckwalter** (`buckwalter.js`):
+- Standard Buckwalter transliteration scheme
+- Converts Arabic Unicode to ASCII for model input
+- Converts model output back to Arabic Unicode
 
-**Customization:**
-- To change the server port, edit `SERVER_URL` in `background.js` and update the Flask `app.run()` call
-- To use the encoder-decoder model instead of encoder-only, change `CATTEncoderOnly` to `CATTEncoderDecoder` in `tashkeel_server.py`
+**Inference** (`background.js`):
+- Loads ONNX models using onnxruntime-web
+- Implements encoder-decoder inference pipeline
+- Handles attention masks and padding
+- Applies post-processing (argmax, space masking)
 
 ## Troubleshooting
 
-### "Server Not Running" Notification
+### "Models not loaded" Error
 
-**Problem**: The extension shows a notification that the server is not running.
+**Problem**: Extension shows models not loaded.
+
+**Solution**:
+1. Verify model files exist in `model/` directory:
+   ```bash
+   ls -lh model/
+   ```
+2. Check file sizes (each ~250MB)
+3. Follow [MODEL_SETUP.md](MODEL_SETUP.md) to export models
+4. Rebuild extension: `npm run build`
+5. Reload extension in Chrome
+
+### Model Export Fails
+
+**Problem**: `python3 scripts/export_onnx.py` fails.
+
+**Solution**:
+- Ensure you have internet connection (for initial download)
+- Install all Python dependencies:
+  ```bash
+  pip install catt-tashkeel torch onnx onnxruntime
+  ```
+- Check you have ~2GB free disk space
+- See [MODEL_SETUP.md](MODEL_SETUP.md) for alternative methods
+
+### Extension Not Diacritizing
+
+**Problem**: Clicking the icon doesn't add diacritics.
+
+**Checklist:**
+1. Did you select text before clicking? Highlight Arabic text first
+2. Are models loaded? Check DevTools Console (F12) for errors
+3. Is the extension enabled? Check `chrome://extensions/`
+4. Try reloading the extension
+
+### Build Errors
+
+**Problem**: `npm run build` fails.
 
 **Solution**:
 ```bash
-cd server
-python3 tashkeel_server.py
+# Clean and reinstall
+rm -rf node_modules package-lock.json dist
+npm install
+npm run build
 ```
-
-### Server Fails to Start
-
-**Problem**: `ModuleNotFoundError: No module named 'flask'`
-
-**Solution**: Install the Python dependencies:
-```bash
-cd server
-pip install -r requirements.txt
-```
-
-### Model Download Fails
-
-**Problem**: The CATT model fails to download automatically.
-
-**Solution**: The model will be downloaded on first run. If it fails due to network issues, the `catt-tashkeel` package will retry. You can also manually download the model from the [CATT releases](https://github.com/abjadai/catt/releases).
-
-### Extension Not Working
-
-**Checklist:**
-1. Is the Python server running? Check http://localhost:5000 in your browser
-2. Is the extension loaded in Chrome? Check `chrome://extensions/`
-3. Did you select Arabic text before clicking the icon?
-4. Check the browser console (F12) for error messages
 
 ## Technical Details
 
 **CATT Model:**
-- **Type**: Encoder-Only Transformer (faster inference) or Encoder-Decoder (higher accuracy)
-- **Framework**: PyTorch with ONNX Runtime
-- **Model Size**: ~500MB (downloaded automatically)
-- **Inference Speed**: ~100-200 characters per second
+- **Type**: Encoder-Only Transformer
+- **Architecture**: 6-layer transformer encoder + linear decoder
+- **Parameters**: ~50M
+- **Input**: Buckwalter-encoded Arabic text (max 1024 tokens)
+- **Output**: Diacritical mark predictions (18 classes)
+- **Format**: ONNX (optimized for browser)
+
+**Runtime:**
+- **Engine**: ONNX Runtime Web (WebAssembly backend)
+- **Model Size**: ~500MB (encoder + decoder)
+- **Load Time**: ~2-3 seconds (first time)
+- **Inference Speed**: ~100-200 characters/second
 
 **Extension:**
 - **Manifest Version**: 3
-- **Permissions**: activeTab, scripting, notifications, localhost:5000
-- **No external dependencies** (no TensorFlow.js required)
+- **Permissions**: activeTab, scripting, notifications
+- **Dependencies**: onnxruntime-web
+- **Bundle Size**: ~2MB (including ONNX.js runtime)
 
 ## Credits
 

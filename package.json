@@ -9,9 +9,11 @@
     "tashkeel",
     "harakat"
   ],
-  "dependencies": {},
+  "dependencies": {
+    "onnxruntime-web": "^1.17.0"
+  },
   "scripts": {
-    "copy": "cp manifest.json dist/ && cp -R images dist/images",
+    "copy": "cp manifest.json dist/ && cp -R images dist/images && mkdir -p dist/model && cp -R model/*.onnx dist/model/ 2>/dev/null || true",
     "prebuild": "rm -rf dist",
     "prebuild-dev": "rm -rf dist",
     "build": "parcel build content.js background.js --dist-dir dist && npm run copy",

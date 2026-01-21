@@ -12,8 +12,11 @@
     "scripting",
     "notifications"
   ],
-  "host_permissions": [
-    "http://localhost:5000/*"
+  "web_accessible_resources": [
+    {
+      "matches": ["<all_urls>"],
+      "resources": ["model/*"]
+    }
   ],
   "action": {
     "default_icon": {
