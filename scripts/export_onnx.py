@@ -43,7 +43,7 @@ def export_to_onnx_browser():
 
         # Check if models exist
         if encoder_path.exists() and decoder_path.exists():
-            print(f"✅ Found existing ONNX models:")
+            print("✅ Found existing ONNX models:")
             print(f"   Encoder: {encoder_path}")
             print(f"   Decoder: {decoder_path}")
 
