@@ -37,12 +37,15 @@ Implemented as a chain of stacked PRs, one theme at a time.
   `prediction_to_text`.
 - [x] **Warm-up predict** after model load so the first click doesn't pay
   shader/kernel compilation.
-- [ ] **Slim the bundle.** Import `@tensorflow/tfjs-core` / `-layers` / one
+- [x] **Slim the bundle.** Import `@tensorflow/tfjs-core` / `-layers` / one
   backend instead of the full 1.13 MB `@tensorflow/tfjs`.
-- [ ] **Benchmark WASM backend** (SIMD/threads) against the current setup;
+- [x] **Benchmark WASM backend** (SIMD/threads) against the current setup;
   small-batch BiLSTMs over 90 timesteps are often CPU-bound.
-- [ ] **GraphModel conversion + float16 quantization** (if the converter
-  tooling cooperates): fused kernels, roughly half the 21 MB weight download.
+- [ ] **GraphModel conversion + float16 quantization**: the Python
+  `tensorflowjs_converter` cannot deserialize this model (Keras 2.19 weight
+  naming mismatch: `KeyError: 'bidirectional/forward_lstm/kernel'`).
+  Plan B: quantize the weights manifest to float16 directly in Node —
+  tfjs dequantizes float16 natively at load time.
 - [x] **Stream results** — apply per-segment results to the page as they
   arrive so large selections look "working", not frozen.
 

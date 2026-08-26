@@ -27,4 +27,9 @@ describe('manifest', () => {
         assert.deepEqual([...manifest.permissions].sort(),
             ['activeTab', 'scripting']);
     });
+
+    test('CSP allows WebAssembly for the wasm backend', () => {
+        assert.match(manifest.content_security_policy.extension_pages,
+            /'wasm-unsafe-eval'/);
+    });
 });
