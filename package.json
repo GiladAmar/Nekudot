@@ -22,7 +22,9 @@
     "prebuild-dev": "rm -rf dist",
     "build": "parcel build content.js content_undo.js background.js paste.html --no-source-maps --dist-dir dist && npm run copy",
     "build-dev": "NODE_ENV=development parcel build content.js content_undo.js background.js paste.html --dist-dir dist && npm run copy",
-    "bench": "node scripts/benchmark_backends.mjs"
+    "bench": "node scripts/benchmark_backends.mjs",
+    "fixtures": "node scripts/fetch_fixture.mjs",
+    "test:e2e": "node --test \"e2e/**/*.test.mjs\""
   },
   "devDependencies": {
     "@babel/core": "^7.28.5",
@@ -30,8 +32,10 @@
     "@babel/runtime": "^7.28.4",
     "buffer": "^6.0.3",
     "clang-format": "^1.8.0",
+    "jsdom": "^29.1.1",
     "parcel": "^2.16.3",
-    "process": "^0.11.10"
+    "process": "^0.11.10",
+    "puppeteer": "^25.9.0"
   },
   "author": "Gilad Amar",
   "license": "MIT",

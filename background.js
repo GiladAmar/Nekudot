@@ -23,6 +23,7 @@ async function pick_backend() {
             if (await tf.setBackend(backend)) {
                 await tf.ready();
                 console.log('Nekudot: using backend', backend);
+                globalThis.__nekudotBackend = backend; // observability (e2e tests)
                 return;
             }
         } catch (e) {
@@ -47,6 +48,8 @@ async function load_model() {
 }
 
 const model = load_model();
+// observability (e2e tests): resolves true once the model is loaded & warm
+globalThis.__nekudotModelReady = model.then(() => true, () => false);
 
 // Probe every frame for a live selection (in the DOM or inside a focused
 // input/textarea), then inject `file` into exactly the frames that have

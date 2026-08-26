@@ -62,6 +62,20 @@ Implemented as a chain of stacked PRs, one theme at a time.
 - [x] **Paste page** — a simple extension page with a paste box: works on
   sites where DOM rewriting can't (canvas-rendered apps, Word Online, etc.).
 
+## Automated testing (added after the plan)
+
+- [x] **Real-page pipeline test**: a downloaded ynet homepage snapshot
+  (gitignored; `npm run fixtures`) runs through the exact content-script
+  segmentation + background pipeline in jsdom (`tests/real_page.test.mjs`).
+- [x] **Browser end-to-end test**: Puppeteer launches real Chrome with the
+  built extension, simulates Ctrl+A on the served snapshot, invokes the
+  extension, verifies the wasm backend is live in the MV3 service worker,
+  and inspects the final HTML — every Hebrew-bearing element type must be
+  dotted (`npm run test:e2e`).
+- [x] **Segment packing**: batched segments share rows (joined with spaces
+  before row-splitting) — the 444-segment ynet page dropped from ~16s to
+  ~5.5s in the pipeline test, ~7.7s end-to-end in Chrome.
+
 ## Out of scope (future)
 
 - **Google Docs integration.** Docs renders into a `<canvas>`; there are no

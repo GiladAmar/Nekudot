@@ -142,17 +142,22 @@ describe('end-to-end with the real model', () => {
         assert.equal(remove_niqqud(out), text);
     });
 
-    test('diacritize_batch matches per-segment diacritize', async () => {
+    test('diacritize_batch: every segment round-trips and gets niqqud', async () => {
+        // Batched segments share row context (they are joined with spaces
+        // before row-splitting, like the original extension), so outputs are
+        // not required to be bit-identical to per-segment runs — but each
+        // segment must map back to exactly its own text.
         const texts = [
             'הם חלק ממאמצי האגודה הלאומית',
             'כותרת ראשית: דבר מה קרה היום.',
             'עוד פסקה עם טקסט עברי רגיל.',
         ];
         const batched = await diacritize_batch(tf, model, texts);
-        const separate = [];
-        for (const t of texts)
-            separate.push(await diacritize(tf, model, t));
-        assert.deepEqual(batched, separate);
+        assert.equal(batched.length, texts.length);
+        for (let i = 0; i < texts.length; i++) {
+            assert.equal(remove_niqqud(batched[i]), texts[i]);
+            assert.ok(/[\u05B0-\u05BC]/.test(batched[i]), `segment ${i} should get niqqud`);
+        }
     });
 
     test('no tensor leaks across calls', async () => {

@@ -76,10 +76,26 @@ function remove_niqqud(text) {
     return text.replace(/[\u0591-\u05C7]/g, '');
 }
 
-function encode_text(text) {
-    const undotted = remove_niqqud(text);
-    const rows = split_to_rows(undotted.replace(/./gms, normalize), MAXLEN);
-    return {undotted, rows};
+// Insert predicted marks into undotted text. The per-character head classes
+// (nq/dg/sn) are aligned to a stream of which this text occupies
+// [offset, offset + length). Characters are preserved exactly — only
+// combining marks are inserted — so callers may substitute the result for
+// the original text in place.
+function decode_chars(undotted_text, nq, dg, sn, offset) {
+    let output = '';
+    for (let i = 0; i < undotted_text.length; i++) {
+        const c = undotted_text[i];
+        output += c;
+        if (HEBREW_LETTERS.includes(c)) {
+            if (can_dagesh(c))
+                output += dagesh_array[dg[offset + i]];
+            if (can_sin(c))
+                output += sin_array[sn[offset + i]];
+            if (can_niqqud(c))
+                output += niqqud_array[nq[offset + i]];
+        }
+    }
+    return output;
 }
 
 // Only rows containing a Hebrew letter can receive marks; the rest of a
@@ -127,52 +143,36 @@ async function run_model(tf, model, rows) {
     return heads;
 }
 
-// Turn one segment's slice of the model output back into dotted text.
-// `flat_input` is the segment's encoded rows flattened; `offset` is where
-// those rows start inside the batched head arrays. The characters of the
-// input are preserved exactly — only combining marks are inserted — so
-// callers may substitute the result for the original text in place.
-function decode(flat_input, heads, undotted_text, offset) {
-    const niqqud_result = [];
-    const dagesh_result = [];
-    const sin_result = [];
-    for (let i = 0; i < flat_input.length; i++) {
-        if (flat_input[i] > 0) {
-            niqqud_result.push(heads.niqqud[offset + i]);
-            dagesh_result.push(heads.dagesh[offset + i]);
-            sin_result.push(heads.sin[offset + i]);
-        }
-    }
-
-    let output = '';
-    for (let i = 0; i < undotted_text.length; i++) {
-        const c = undotted_text[i];
-        output += c;
-        if (HEBREW_LETTERS.includes(c)) {
-            if (can_dagesh(c))
-                output += dagesh_array[dagesh_result[i]];
-            if (can_sin(c))
-                output += sin_array[sin_result[i]];
-            if (can_niqqud(c))
-                output += niqqud_array[niqqud_result[i]];
-        }
-    }
-    return output;
-}
-
-// Diacritize several independent text segments, batching their rows into
-// shared predict calls. Returns one dotted string per input segment, in order.
+// Diacritize several text segments with one shared row stream. Segments are
+// joined with single spaces before row-splitting, so many short segments
+// (one per DOM text node on a news page) share rows instead of each padding
+// its own — on a real homepage this cuts predicted rows roughly 3x.
+// The non-padding tokens of the joined stream are exactly `joined + ' '`
+// (split_to_rows re-emits every consumed delimiter), so segment i's
+// characters live at [sum(len_j + 1 for j < i), ... + len_i) of the
+// filtered stream. Returns one dotted string per input segment, in order.
 async function diacritize_batch(tf, model, texts) {
-    const encoded = texts.map(encode_text);
-    const allRows = encoded.flatMap(e => e.rows);
-    const heads = await run_model(tf, model, allRows);
+    const undotted = texts.map(remove_niqqud);
+    const joined = undotted.map(t => t.replace(/./gms, normalize)).join(' ');
+    const rows = split_to_rows(joined, MAXLEN);
+    const heads = await run_model(tf, model, rows);
+
+    // per-character head classes, aligned to `joined`
+    const flat = rows.flat();
+    const nq = [], dg = [], sn = [];
+    for (let i = 0; i < flat.length; i++) {
+        if (flat[i] > 0) {
+            nq.push(heads.niqqud[i]);
+            dg.push(heads.dagesh[i]);
+            sn.push(heads.sin[i]);
+        }
+    }
 
     const out = [];
     let offset = 0;
-    for (const e of encoded) {
-        const flat = e.rows.flat();
-        out.push(decode(flat, heads, e.undotted, offset));
-        offset += flat.length;
+    for (const text of undotted) {
+        out.push(decode_chars(text, nq, dg, sn, offset));
+        offset += text.length + 1; // +1 for the joining space
     }
     return out;
 }
@@ -185,5 +185,5 @@ export {
     MAXLEN, RAFE, niqqud_array, dagesh_array, sin_array,
     HEBREW_LETTERS, VALID_LETTERS, SPECIAL_TOKENS, ALL_TOKENS,
     normalize, split_to_rows, can_dagesh, can_sin, can_niqqud,
-    remove_niqqud, encode_text, diacritize, diacritize_batch,
+    remove_niqqud, diacritize, diacritize_batch,
 };
