@@ -1,6 +1,10 @@
 import {test, describe} from 'node:test';
 import assert from 'node:assert/strict';
 import {hasHebrew, isMostlyDotted, segmentRange, nodeSegment, collectSegments} from '../content_lib.mjs';
+import {applyWithRegistry} from '../content_runtime.mjs';
+
+// content_runtime's registry hangs off `window`
+global.window = {};
 
 describe('hasHebrew', () => {
     test('detects Hebrew letters', () => {
@@ -112,5 +116,59 @@ describe('nodeSegment', () => {
         const text = 'לפני שלום אחרי';
         const seg = nodeSegment(text, true, true, 5, 9);
         assert.equal(seg.prefix + seg.middle + seg.suffix, text);
+    });
+});
+
+describe('applyWithRegistry', () => {
+    function target(initial) {
+        const t = {value: initial};
+        return {t, read: () => t.value, write: v => { t.value = v; }};
+    }
+
+    test('applies, records, and rolls back', () => {
+        const {t, read, write} = target('שלום');
+        const rollback = applyWithRegistry(t, read, write, 'שלום', 'שָׁלוֹם');
+        assert.equal(t.value, 'שָׁלוֹם');
+        rollback();
+        assert.equal(t.value, 'שלום');
+    });
+
+    test('stale snapshot applies nothing', () => {
+        const {t, read, write} = target('changed meanwhile');
+        const rollback = applyWithRegistry(t, read, write, 'original snapshot', 'dotted');
+        assert.equal(rollback, null);
+        assert.equal(t.value, 'changed meanwhile');
+    });
+
+    test('edits between runs become the new original (undo keeps user edits)', () => {
+        const {t, read, write} = target('אבג');
+        applyWithRegistry(t, read, write, 'אבג', 'אָבָג');
+        // user edits after the first run
+        t.value = 'אָבָג ועוד';
+        // second run over the edited text
+        applyWithRegistry(t, read, write, 'אָבָג ועוד', 'אָבָג וְעוֹד');
+        // Remove nikud must give back the EDITED text, not the pre-edit state
+        const record = global.window.__nekudotOriginals.get(t);
+        assert.equal(record.original, 'אָבָג ועוד');
+        assert.equal(record.written, 'אָבָג וְעוֹד');
+    });
+
+    test('rollback of a re-run restores the pre-run text without deleting the record', () => {
+        const {t, read, write} = target('אבג');
+        applyWithRegistry(t, read, write, 'אבג', 'first');
+        const rollback = applyWithRegistry(t, read, write, 'first', 'second');
+        rollback();
+        assert.equal(t.value, 'first');
+        const record = global.window.__nekudotOriginals.get(t);
+        assert.equal(record.written, 'first');
+        assert.equal(record.original, 'אבג');
+    });
+
+    test('rollback is a no-op when the target changed after the write', () => {
+        const {t, read, write} = target('אבג');
+        const rollback = applyWithRegistry(t, read, write, 'אבג', 'dotted');
+        t.value = 'user typed over it';
+        rollback();
+        assert.equal(t.value, 'user typed over it');
     });
 });

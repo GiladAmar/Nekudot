@@ -92,8 +92,11 @@ async function invoke(tab, file) {
             },
         });
         const frameIds = probes.filter(p => p && p.result).map(p => p.frameId);
+        // no selection anywhere: whole-page mode in every reachable frame,
+        // matching the explicit whole-page menu (and letting no-selection
+        // Remove nikud restore iframe work)
         await chrome.scripting.executeScript({
-            target: frameIds.length > 0 ? {tabId: tab.id, frameIds} : {tabId: tab.id},
+            target: frameIds.length > 0 ? {tabId: tab.id, frameIds} : {tabId: tab.id, allFrames: true},
             files: [file],
         });
     } catch (e) {

@@ -2,7 +2,7 @@
 // this file is injected only into frames that have a selection, or into
 // the top frame alone when no frame has one (whole-page fallback).
 import {nodeSegment, isMostlyDotted, collectSegments} from './content_lib.mjs';
-import {scopedTextNodes, requestDiacritics, getRegistry, activeEditable, showToast, runWholePage} from './content_runtime.mjs';
+import {scopedTextNodes, requestDiacritics, applyWithRegistry, activeEditable, showToast, runWholePage} from './content_runtime.mjs';
 
 // Selection inside an <input>/<textarea>: splice the diacritized text into
 // the element's value (DOM walking can't reach it).
@@ -20,22 +20,16 @@ function setNekudotEditable(el) {
     const pending = new Map();
     pending.set(0, {
         apply(text) {
-            // The user may have typed while the model ran; never clobber it.
-            if (el.value !== valueAtRequest) return null;
-            const registry = getRegistry();
-            if (!registry.has(el))
-                registry.set(el, {original: valueAtRequest, written: null});
-            const record = registry.get(el);
-            el.value = seg.prefix + text + seg.suffix;
-            const after = el.value;
-            record.written = after;
-            el.setSelectionRange(start, start + text.length);
-            return () => {
-                if (el.value !== after) return;
-                el.value = valueAtRequest;
-                if (record.original === valueAtRequest) registry.delete(el);
-                else record.written = valueAtRequest;
-            };
+            const rollback = applyWithRegistry(
+                el,
+                () => el.value,
+                v => { el.value = v; },
+                valueAtRequest,
+                seg.prefix + text + seg.suffix,
+            );
+            if (rollback)
+                el.setSelectionRange(start, start + text.length);
+            return rollback;
         }
     });
     requestDiacritics([{id: 0, text: seg.middle}], pending);
@@ -50,7 +44,8 @@ function setNekudot() {
 
     const {nodes, range} = scopedTextNodes();
     if (!range) {
-        showToast('Nekudot: no selection — adding nikud to the whole page');
+        if (window === window.top)
+            showToast('Nekudot: no selection — adding nikud to the whole page');
         runWholePage();
         return;
     }

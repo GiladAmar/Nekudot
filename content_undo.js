@@ -11,11 +11,9 @@
 // - With NO selection (whole-page mode), only the extension's own work is
 //   undone: a page's native vocalization (Tanakh, siddur) is never
 //   destroyed wholesale. Select text explicitly to strip native marks.
-import {remove_niqqud} from './text_encoding.mjs';
+import {remove_niqqud, HEBREW_MARKS_RE} from './text_encoding.mjs';
 import {nodeSegment} from './content_lib.mjs';
 import {scopedTextNodes, getRegistry, activeEditable} from './content_runtime.mjs';
-
-const MARKS_RE = /[\u0591-\u05BD\u05BF\u05C1\u05C2\u05C4\u05C5\u05C7]/;
 
 function removeNekudot() {
     const registry = getRegistry();
@@ -31,17 +29,19 @@ function removeNekudot() {
         return false;
     }
 
+    const {nodes, range} = scopedTextNodes();
+
     // A focused field counts even with a collapsed selection — undo must
-    // stay reachable after the caret moves.
-    const editable = activeEditable(false);
+    // stay reachable after the caret moves — but never hijacks an explicit
+    // DOM selection elsewhere in the frame (pages love to refocus inputs).
+    const editable = range ? null : activeEditable(false);
     if (editable) {
         if (!restoreOurs(editable, editable.value, v => { editable.value = v; })
-            && MARKS_RE.test(editable.value))
+            && HEBREW_MARKS_RE.test(editable.value))
             editable.value = remove_niqqud(editable.value);
         return;
     }
 
-    const {nodes, range} = scopedTextNodes();
     for (const node of nodes) {
         const text = node.textContent;
         if (restoreOurs(node, text, v => { node.textContent = v; }))
@@ -50,7 +50,7 @@ function removeNekudot() {
             continue; // whole-page mode never strips text we didn't write
         const seg = nodeSegment(text, node === range.startContainer,
             node === range.endContainer, range.startOffset, range.endOffset);
-        if (!seg || !MARKS_RE.test(seg.middle)) continue;
+        if (!seg || !HEBREW_MARKS_RE.test(seg.middle)) continue;
         node.textContent = seg.prefix + remove_niqqud(seg.middle) + seg.suffix;
     }
 }

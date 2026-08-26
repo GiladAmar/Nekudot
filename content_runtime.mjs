@@ -18,7 +18,9 @@ function collectTextNodes(root, range = null) {
             acceptNode(node) {
                 if (range && !range.intersectsNode(node))
                     return NodeFilter.FILTER_REJECT;
-                if (node.parentElement && node.parentElement.closest('script,style,noscript,template'))
+                // script/style: never rendered. option/select/textarea:
+                // rewriting their text nodes changes submitted form values.
+                if (node.parentElement && node.parentElement.closest('script,style,noscript,template,option,select,textarea'))
                     return NodeFilter.FILTER_REJECT;
                 return NodeFilter.FILTER_ACCEPT;
             }
@@ -47,7 +49,8 @@ function scopedTextNodes() {
             : range.commonAncestorContainer;
         return {nodes: root ? collectTextNodes(root, range) : [], range};
     }
-    return {nodes: collectTextNodes(document.body), range: null};
+    // document.body is null on SVG/XML documents and some subframes
+    return {nodes: document.body ? collectTextNodes(document.body) : [], range: null};
 }
 
 function showToast(message) {
@@ -79,6 +82,37 @@ function getRegistry() {
 }
 
 /**
+ * The single implementation of the registry contract, shared by the DOM
+ * node path and the input/textarea path. Writes `newText` to the target
+ * (via read/write closures) and maintains its {original, written} record:
+ * - a stale target (current text !== the snapshot taken at request time)
+ *   is left alone — user/page changes are never clobbered;
+ * - text edited since our last write becomes the new `original`, so
+ *   Remove nikud gives back the edited text, not a pre-edit state.
+ * Returns a rollback function, or null when nothing was applied.
+ */
+function applyWithRegistry(target, read, write, snapshot, newText) {
+    if (read() !== snapshot) return null;
+    const registry = getRegistry();
+    let record = registry.get(target);
+    if (!record) {
+        record = {original: snapshot, written: null};
+        registry.set(target, record);
+    } else if (record.written !== snapshot) {
+        record.original = snapshot;
+    }
+    write(newText);
+    const after = read();
+    record.written = after;
+    return () => {
+        if (read() !== after) return;
+        write(snapshot);
+        if (record.original === snapshot) registry.delete(target);
+        else record.written = snapshot;
+    };
+}
+
+/**
  * Send segments to the background over a port and apply each result to its
  * node as it arrives. `pending` maps segment id -> {node, prefix, suffix}
  * or {apply: fn} for custom targets (e.g. input/textarea values); a custom
@@ -101,22 +135,14 @@ function requestDiacritics(segments, pending, {onDone, onFail} = {}) {
     function applyToNode(entry, text) {
         const node = entry.node;
         if (!node.isConnected) return;
-        const before = node.textContent;
-        // The page may have changed this node while the model ran (live
-        // ticker, SPA re-render): never apply over text we didn't collect.
-        if (before !== entry.whole) return;
-        if (!registry.has(node))
-            registry.set(node, {original: before, written: null});
-        const record = registry.get(node);
-        node.textContent = entry.prefix + text + entry.suffix;
-        const after = node.textContent;
-        record.written = after;
-        rollbacks.push(() => {
-            if (!node.isConnected || node.textContent !== after) return;
-            node.textContent = before;
-            if (record.original === before) registry.delete(node);
-            else record.written = before;
-        });
+        const rollback = applyWithRegistry(
+            node,
+            () => node.textContent,
+            v => { node.textContent = v; },
+            entry.whole,
+            entry.prefix + text + entry.suffix,
+        );
+        if (rollback) rollbacks.push(rollback);
     }
 
     const port = chrome.runtime.connect({name: 'nekudot'});
@@ -179,14 +205,22 @@ function activeEditable(requireSelection = true) {
 // The whole-page flow, shared by the explicit menu entry (content_page.js)
 // and content.js's no-selection fallback.
 function runWholePage() {
-    const {pending, segments, alreadyDotted} = collectSegments(collectTextNodes(document.body), null);
+    // document.body is null on SVG/XML documents and some subframes
+    const nodes = document.body ? collectTextNodes(document.body) : [];
+    const {pending, segments, alreadyDotted} = collectSegments(nodes, null);
     if (segments.length === 0) {
-        showToast(alreadyDotted > 0
-            ? 'Nekudot: this page already has nikud'
-            : 'Nekudot: no Hebrew text found on this page');
+        // injected into all frames: only the top frame reports, so a
+        // Hebrew-free iframe doesn't toast over a page that was processed
+        if (window === window.top)
+            showToast(alreadyDotted > 0
+                ? 'Nekudot: this page already has nikud'
+                : 'Nekudot: no Hebrew text found on this page');
         return;
     }
     requestDiacritics(segments, pending);
 }
 
-export {collectTextNodes, scopedTextNodes, showToast, requestDiacritics, getRegistry, activeEditable, runWholePage};
+export {
+    collectTextNodes, scopedTextNodes, showToast, requestDiacritics,
+    getRegistry, applyWithRegistry, activeEditable, runWholePage,
+};

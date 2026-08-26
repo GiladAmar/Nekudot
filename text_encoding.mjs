@@ -78,8 +78,10 @@ function can_niqqud(letter) {
 // maqaf \u05BE, paseq \u05C0, sof pasuq \u05C3, nun hafukha \u05C6.
 // A wider range silently deleted maqaf from every dotted text
 // (\u05D1\u05D9\u05EA\u05BE\u05E1\u05E4\u05E8 became one glued word).
+const HEBREW_MARKS_RE = /[\u0591-\u05BD\u05BF\u05C1\u05C2\u05C4\u05C5\u05C7]/;
+
 function remove_niqqud(text) {
-    return text.replace(/[\u0591-\u05BD\u05BF\u05C1\u05C2\u05C4\u05C5\u05C7]/g, '');
+    return text.replace(new RegExp(HEBREW_MARKS_RE.source, 'g'), '');
 }
 
 // Insert predicted marks into undotted text. The per-character head classes
@@ -191,5 +193,5 @@ export {
     MAXLEN, niqqud_array, dagesh_array, sin_array,
     HEBREW_LETTERS, VALID_LETTERS, SPECIAL_TOKENS, ALL_TOKENS,
     normalize, split_to_rows, can_dagesh, can_sin, can_niqqud,
-    remove_niqqud, diacritize, diacritize_batch,
+    remove_niqqud, HEBREW_MARKS_RE, diacritize, diacritize_batch,
 };

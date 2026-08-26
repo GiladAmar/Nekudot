@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=Frank+Ruhl+Libre:wght@700;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    width: 440px; height: 280px; margin: 0; overflow: hidden;
+    font-family: Inter, sans-serif;
+    background: radial-gradient(130% 160% at 80% -30%, #1e40af 0%, #172554 50%, #0b1533 100%);
+    color: #fff; position: relative;
+  }
+  .watermark {
+    position: absolute; right: -36px; bottom: -80px;
+    font-family: 'Frank Ruhl Libre'; font-weight: 900; font-size: 240px;
+    color: #fff; opacity: 0.05; line-height: 1;
+  }
+  .wrap { padding: 30px 32px; position: relative; }
+  .brand { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+  .brand img { width: 56px; height: 56px; border-radius: 13px; box-shadow: 0 8px 20px rgba(0,0,0,.4); }
+  .name { font-size: 32px; font-weight: 800; letter-spacing: -0.5px; }
+  .tag { font-size: 16.5px; font-weight: 600; color: #c7d4f2; line-height: 1.4; margin-bottom: 18px; }
+  .demo {
+    display: flex; align-items: center; gap: 14px;
+    background: #fff; border-radius: 12px; padding: 12px 18px;
+    width: fit-content; box-shadow: 0 12px 28px rgba(0,0,0,.4);
+  }
+  .demo .heb { font-family: 'Frank Ruhl Libre'; font-weight: 700; font-size: 34px; color: #0f172a; line-height: 1.3; }
+  .demo .heb.dotted { color: #1d4ed8; }
+  .demo svg { width: 24px; height: 24px; }
+</style>
+</head>
+<body>
+<div class="watermark">אָ</div>
+<div class="wrap">
+  <div class="brand">
+    <img src="final/icons/aleph_512.png">
+    <div class="name">Nekudot</div>
+  </div>
+  <div class="tag">One click adds nikud —<br>vowel marks — to any webpage.</div>
+  <div class="demo">
+    <span class="heb">עברית</span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="#facc15" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16M13 5l7 7-7 7"/></svg>
+    <span class="heb dotted">עִבְרִית</span>
+  </div>
+</div>
+</body>
+</html>

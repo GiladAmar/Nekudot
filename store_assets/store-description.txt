@@ -1,0 +1,28 @@
+Learning Hebrew? Then you know the problem: real-world Hebrew — news sites, Wikipedia, blogs, song lyrics — is written without nekudot (vowel marks), so there's no way to tell how a new word is pronounced. Nekudot fixes that in one click.
+
+Highlight some Hebrew text and click the Nekudot icon: the text is rewritten in place with full nikud. Click with nothing selected and the whole page gets nikud, with results appearing on screen as they are computed — a full news homepage takes just a few seconds.
+
+WAYS TO USE IT
+• Click the toolbar icon — nikud for the selection, or the whole page if nothing is selected.
+• Right-click → "Add nikud", or "Add nikud to the whole page".
+• Keyboard shortcut: Ctrl+Shift+Y (⌘+Shift+Y on Mac).
+• "Remove nikud" restores the original text exactly.
+• Works inside text boxes too — Gmail compose, comment fields, online editors.
+• Google Docs or Word Online? Pages like these can't be edited by extensions, so Nekudot includes a paste page: right-click the toolbar icon → "Open paste page", then paste, click, and copy the dotted text back.
+
+PRIVATE AND FAST
+• Everything runs on your device, using a neural network (TensorFlow.js with a WebAssembly engine). Your text never leaves the browser — no server, no account, no tracking, and it works offline.
+• The extension loads only when you invoke it. It does not run in the background or touch pages you don't use it on.
+• Running it again on the same page (say, after an infinite-scroll site loads more articles) processes only the new text, in a fraction of the time.
+
+The model is not perfect, but it performs really well — especially if you are learning Israeli (Sephardi) pronunciation, where kamatz and patach sound the same.
+
+KNOWN ISSUES
+• "I don't see the Nekudot icon in my toolbar" — Chrome sometimes hides newly installed extensions. Click the puzzle-piece icon at the top right and pin Nekudot to the toolbar.
+• Google Docs and Word Online can't be edited in place (that's a Chrome limitation, not a Nekudot one) — use the built-in paste page instead.
+
+Nekudot is free, always will be, and open source: github.com/GiladAmar/Nekudot. If you're curious how a Chrome extension runs a neural network with TensorFlow.js, take a peek.
+
+If it helps you, you can support further development at paypal.me/GiladAmar. If not, no worries.
+
+Credit where it's due: the model is the LSTM from "Restoring Hebrew Diacritics Without a Dictionary" by Elazar Gershuni and Yuval Pinter (arxiv.org/abs/2105.05209), who graciously let me use it. Thank you — it's a really cool and original use of machine learning.
