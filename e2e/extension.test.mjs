@@ -1,10 +1,10 @@
 // Full end-to-end test: launches real Chrome with the built extension,
-// opens a locally served snapshot of the ynet homepage, simulates Ctrl+A,
+// opens locally served snapshots of real news homepages, simulates Ctrl+A,
 // invokes the extension exactly like the toolbar click does, then inspects
 // the FINAL page HTML: every Hebrew-bearing element type must have received
 // niqqud. Reports the active tfjs backend and end-to-end timing.
 //
-// Prereqs: `npm run build` (dist/) and `npm run fixtures` (page snapshot).
+// Prereqs: `npm run build` (dist/) and `npm run fixtures` (page snapshots).
 // Run with: npm run test:e2e
 import {test, describe, before, after} from 'node:test';
 import assert from 'node:assert/strict';
@@ -12,28 +12,35 @@ import {readFile, writeFile, mkdtemp, cp} from 'node:fs/promises';
 import {existsSync} from 'node:fs';
 import {createServer} from 'node:http';
 import {tmpdir} from 'node:os';
-import {join, dirname} from 'node:path';
+import {join, dirname, basename} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import puppeteer from 'puppeteer';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
-const FIXTURE = join(repoRoot, 'tests', 'fixtures', 'ynet-home.html');
 const DIST = join(repoRoot, 'dist');
+const ALL_FIXTURES = ['ynet-home.html', 'hebrewnews-home.html'];
+const FIXTURES = ALL_FIXTURES.filter(f => existsSync(join(repoRoot, 'tests', 'fixtures', f)));
 
-const missing = !existsSync(FIXTURE) ? 'fixture missing — run `npm run fixtures`'
+const MARKS = '\\u05B0-\\u05BC\\u05C1\\u05C2';
+
+const missing = FIXTURES.length === 0 ? 'fixtures missing — run `npm run fixtures`'
     : !existsSync(join(DIST, 'manifest.json')) ? 'dist missing — run `npm run build`'
     : false;
 
 describe('extension end-to-end in Chrome', {skip: missing}, () => {
-    let browser, server, page, sw, origin;
+    let browser, server, sw, origin;
 
     before(async () => {
-        // Serve the fixture locally; block everything else so the snapshot's
+        // Serve fixtures by name; block everything else so the snapshots'
         // external references don't hit the network.
-        const html = await readFile(FIXTURE, 'utf8');
-        server = createServer((req, res) => {
+        server = createServer(async (req, res) => {
+            const name = basename(new URL(req.url, 'http://x/').pathname);
+            if (!FIXTURES.includes(name)) {
+                res.statusCode = 404;
+                return res.end('not found');
+            }
             res.setHeader('content-type', 'text/html; charset=utf-8');
-            res.end(html);
+            res.end(await readFile(join(repoRoot, 'tests', 'fixtures', name)));
         });
         await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
         origin = `http://127.0.0.1:${server.address().port}`;
@@ -60,12 +67,6 @@ describe('extension end-to-end in Chrome', {skip: missing}, () => {
             t => t.type() === 'service_worker' && t.url().includes('background.js'),
             {timeout: 30000});
         sw = await swTarget.worker();
-
-        page = await browser.newPage();
-        await page.setRequestInterception(true);
-        page.on('request', req =>
-            req.url().startsWith(origin) ? req.continue() : req.abort());
-        await page.goto(origin + '/', {waitUntil: 'domcontentloaded', timeout: 30000});
     });
 
     after(async () => {
@@ -82,91 +83,98 @@ describe('extension end-to-end in Chrome', {skip: missing}, () => {
             'wasm must initialize in the MV3 service worker (regression: Worker is not defined)');
     });
 
-    test('Ctrl+A + invoke diacritizes every Hebrew-bearing element type', async () => {
-        // Simulate Ctrl+A
-        await page.evaluate(() => {
-            const range = document.createRange();
-            range.selectNodeContents(document.body);
-            const sel = window.getSelection();
-            sel.removeAllRanges();
-            sel.addRange(range);
-        });
+    for (const fixture of FIXTURES) {
+        test(`Ctrl+A + invoke diacritizes every Hebrew element type: ${fixture}`, async () => {
+            const page = await browser.newPage();
+            await page.setRequestInterception(true);
+            page.on('request', req =>
+                req.url().startsWith(origin) ? req.continue() : req.abort());
+            const url = `${origin}/${fixture}`;
+            await page.goto(url, {waitUntil: 'domcontentloaded', timeout: 30000});
 
-        const markCount = () => page.evaluate(() =>
-            (document.body.innerText.match(/[\u05B0-\u05BC\u05C1\u05C2]/g) || []).length);
-
-        assert.equal(await markCount(), 0, 'page must start without niqqud');
-
-        // Invoke exactly like chrome.action.onClicked -> invoke() does
-        const t0 = performance.now();
-        await sw.evaluate(async (origin) => {
-            const [tab] = await chrome.tabs.query({url: origin + '/*'});
-            await chrome.scripting.executeScript({
-                target: {tabId: tab.id, allFrames: true},
-                files: ['content.js'],
+            // Simulate Ctrl+A
+            await page.evaluate(() => {
+                const range = document.createRange();
+                range.selectNodeContents(document.body);
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(range);
             });
-        }, origin);
 
-        // Results stream in; wait until the mark count is stable.
-        let last = 0, stable = 0, first = 0;
-        const deadline = Date.now() + 120000;
-        while (Date.now() < deadline) {
-            await new Promise(r => setTimeout(r, 500));
-            const n = await markCount();
-            if (n > 0 && first === 0) first = performance.now() - t0;
-            stable = (n === last && n > 0) ? stable + 1 : 0;
-            last = n;
-            if (stable >= 4) break;
-        }
-        const total = performance.now() - t0 - 2000; // minus stability wait
-        assert.ok(last > 0, 'no niqqud appeared within the deadline');
-        console.log(`# first marks after ${(first / 1000).toFixed(1)}s, ` +
-            `${last} marks total after ~${(total / 1000).toFixed(1)}s`);
+            const markCount = () => page.evaluate((MARKS) =>
+                (document.body.innerText.match(new RegExp(`[${MARKS}]`, 'g')) || []).length, MARKS);
 
-        // Inspect the final HTML: group Hebrew text nodes by element type.
-        const report = await page.evaluate(() => {
-            const CAN_NIQQUD = /[אבגדהוזחטיכלמנסעפצקרשתךן]/g;
-            const MARK = /[\u05B0-\u05BC\u05C1\u05C2]/;
-            const perTag = {};
-            const violations = [];
-            const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-            for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-                const text = node.textContent;
-                const capable = (text.match(CAN_NIQQUD) || []).length;
-                if (capable === 0) continue;
-                if (node.parentElement && node.parentElement.closest('script,style,noscript,template'))
-                    continue; // intentionally untouched
-                const tag = node.parentElement ? node.parentElement.tagName.toLowerCase() : '?';
-                const entry = perTag[tag] ??= {nodes: 0, dotted: 0, capableChars: 0};
-                entry.nodes++;
-                entry.capableChars += capable;
-                if (MARK.test(text)) entry.dotted++;
-                else if (capable >= 2)
-                    violations.push({tag, text: text.slice(0, 60)});
+            const baseline = await markCount();
+
+            // Invoke exactly like chrome.action.onClicked -> invoke() does
+            const t0 = performance.now();
+            await sw.evaluate(async (url) => {
+                const [tab] = await chrome.tabs.query({url});
+                await chrome.scripting.executeScript({
+                    target: {tabId: tab.id, allFrames: true},
+                    files: ['content.js'],
+                });
+            }, url);
+
+            // Results stream in; wait until the mark count is stable.
+            let last = baseline, stable = 0, first = 0;
+            const deadline = Date.now() + 180000;
+            while (Date.now() < deadline) {
+                await new Promise(r => setTimeout(r, 500));
+                const n = await markCount();
+                if (n > baseline && first === 0) first = performance.now() - t0;
+                stable = (n === last && n > baseline) ? stable + 1 : 0;
+                last = n;
+                if (stable >= 4) break;
             }
-            return {perTag, violations};
+            const total = performance.now() - t0 - 2000; // minus stability wait
+            assert.ok(last > baseline, 'no niqqud appeared within the deadline');
+            console.log(`# ${fixture}: first marks after ${(first / 1000).toFixed(1)}s, ` +
+                `${last - baseline} marks added after ~${(total / 1000).toFixed(1)}s`);
+
+            // Inspect the final HTML: group Hebrew text nodes by element type.
+            const report = await page.evaluate((MARKS) => {
+                const CAN_NIQQUD = /[אבגדהוזחטיכלמנסעפצקרשתךן]/g;
+                const MARK = new RegExp(`[${MARKS}]`);
+                const perTag = {};
+                const violations = [];
+                const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+                for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+                    const text = node.textContent;
+                    const capable = (text.match(CAN_NIQQUD) || []).length;
+                    if (capable === 0) continue;
+                    if (node.parentElement && node.parentElement.closest('script,style,noscript,template'))
+                        continue; // intentionally untouched
+                    const tag = node.parentElement ? node.parentElement.tagName.toLowerCase() : '?';
+                    const entry = perTag[tag] ??= {nodes: 0, dotted: 0, capableChars: 0};
+                    entry.nodes++;
+                    entry.capableChars += capable;
+                    if (MARK.test(text)) entry.dotted++;
+                    else if (capable >= 2)
+                        violations.push({tag, text: text.slice(0, 60)});
+                }
+                return {perTag, violations};
+            }, MARKS);
+
+            const tags = Object.entries(report.perTag)
+                .sort((a, b) => b[1].nodes - a[1].nodes);
+            for (const [tag, s] of tags)
+                console.log(`# ${fixture} <${tag}>: ${s.dotted}/${s.nodes} nodes dotted (${s.capableChars} capable chars)`);
+
+            assert.deepEqual(report.violations, [],
+                `Hebrew text nodes (>=2 niqqud-capable chars) left undotted: ${JSON.stringify(report.violations.slice(0, 5))}`);
+
+            // script/style content must stay untouched
+            const scriptMarks = await page.evaluate((MARKS) =>
+                [...document.querySelectorAll('script,style')].some(el =>
+                    new RegExp(`[${MARKS}]`).test(el.textContent)), MARKS);
+            assert.equal(scriptMarks, false, 'script/style content must never be diacritized');
+
+            // Save the dotted page for inspection.
+            const out = join(process.env.E2E_SNAPSHOT_DIR || tmpdir(), `nekudot-e2e-${fixture}`);
+            await writeFile(out, await page.content());
+            console.log(`# dotted page saved to ${out}`);
+            await page.close();
         });
-
-        const tags = Object.entries(report.perTag)
-            .sort((a, b) => b[1].nodes - a[1].nodes);
-        for (const [tag, s] of tags)
-            console.log(`# <${tag}>: ${s.dotted}/${s.nodes} nodes dotted (${s.capableChars} capable chars)`);
-
-        assert.deepEqual(report.violations, [],
-            `Hebrew text nodes (>=2 niqqud-capable chars) left undotted: ${JSON.stringify(report.violations.slice(0, 5))}`);
-
-        // script/style content must stay untouched
-        const scriptMarks = await page.evaluate(() =>
-            [...document.querySelectorAll('script,style')].some(el =>
-                /[\u05B0-\u05BC\u05C1\u05C2]/.test(el.textContent)));
-        assert.equal(scriptMarks, false, 'script/style content must never be diacritized');
-    });
-
-    test('final HTML snapshot is saved for inspection', async () => {
-        const html = await page.content();
-        const out = process.env.E2E_SNAPSHOT_PATH || join(tmpdir(), 'nekudot-e2e-result.html');
-        await writeFile(out, html);
-        console.log(`# dotted page saved to ${out}`);
-        assert.ok(/[\u05B0-\u05BC\u05C1\u05C2]/.test(html));
-    });
+    }
 });
