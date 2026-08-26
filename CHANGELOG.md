@@ -8,8 +8,12 @@
   (e.g. the ynet homepage) and clicking the icon used to fail silently with
   an internal error. It now works — and fast.
 - **Failures no longer damage the page.** Previously, if the model failed,
-  the literal word "error" could be spliced into the page text. Now the page
-  is left untouched and a small notification appears instead.
+  the literal word "error" could be spliced into the page text. Now a failed
+  or interrupted run rolls back anything it had already changed and shows a
+  small notification instead.
+- **Typing while it works is safe.** Text you type in a text box while nikud
+  is being computed is never overwritten, and "Remove nikud" never discards
+  edits you made after dotting — edited text has just its marks stripped.
 - **Text no longer gets scrambled on complex selections.** Results used to be
   mapped back into the page by counting words, which could shift text between
   elements on pages with mixed content. Each piece of text is now replaced

@@ -17,20 +17,29 @@ run.addEventListener('click', () => {
     output.value = '';
     copy.disabled = true;
 
+    let finished = false;
     const port = chrome.runtime.connect({name: 'nekudot'});
     port.onMessage.addListener((msg) => {
         if (msg.type === 'result') {
             output.value = msg.text;
         } else if (msg.type === 'done') {
+            finished = true;
             status.textContent = '';
             run.disabled = false;
             copy.disabled = !output.value;
             port.disconnect();
         } else if (msg.type === 'fatal') {
+            finished = true;
             status.textContent = 'Failed: ' + msg.reason;
             run.disabled = false;
             port.disconnect();
         }
+    });
+    // Service worker death would otherwise leave the button disabled forever.
+    port.onDisconnect.addListener(() => {
+        if (finished) return;
+        status.textContent = 'Failed: connection lost — try again';
+        run.disabled = false;
     });
     port.postMessage({type: 'diacritize', segments: [{id: 0, text}]});
 });

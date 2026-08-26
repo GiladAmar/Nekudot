@@ -1,6 +1,5 @@
 const MAXLEN = 90;
 
-const RAFE = '\u05BF';
 const niqqud_array = ['', '', 'ְ', 'ֱ', 'ֲ', 'ֳ', 'ִ', 'ֵ', 'ֶ', 'ַ', 'ָ', 'ֹ', 'ֺ', 'ֻ', 'ּ', 'ַ'];
 const dagesh_array = ['', '', 'ּ'];
 const sin_array = ['', '', 'ׁ', 'ׂ'];
@@ -12,7 +11,9 @@ const SPECIAL_TOKENS = ['H', 'O', '5'];
 const ALL_TOKENS = [''].concat(SPECIAL_TOKENS).concat(VALID_LETTERS);
 
 function normalize(c) {
-    if (c === '\n' || c === '\t' || c === '\r' || c === '\u00A0') return ' ';
+    // Any Unicode whitespace separates words; mapping only a hardcoded few
+    // left thin/en/em spaces etc. gluing words into giant tokens.
+    if (/\s/.test(c)) return ' ';
     if (VALID_LETTERS.includes(c)) return c;
     if (['־', '‒', '–', '—', '―', '−'].includes(c)) return '-';
     if (c === '[') return '(';
@@ -182,7 +183,7 @@ async function diacritize(tf, model, text) {
 }
 
 export {
-    MAXLEN, RAFE, niqqud_array, dagesh_array, sin_array,
+    MAXLEN, niqqud_array, dagesh_array, sin_array,
     HEBREW_LETTERS, VALID_LETTERS, SPECIAL_TOKENS, ALL_TOKENS,
     normalize, split_to_rows, can_dagesh, can_sin, can_niqqud,
     remove_niqqud, diacritize, diacritize_batch,

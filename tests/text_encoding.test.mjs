@@ -91,6 +91,15 @@ describe('split_to_rows', () => {
         assert.deepEqual(t.shape, [rows.length, MAXLEN]);
         t.dispose();
     });
+
+    test('all Unicode whitespace normalizes to a space', () => {
+        for (const space of ['\u00A0', '\u2009', '\u2002', '\u2003', '\u3000', '\u202F', '\u205F', '\u2028', '\u2029']) {
+            assert.equal(normalize(space), ' ', 'U+' + space.codePointAt(0).toString(16) + ' must become a space');
+        }
+        const text = encode('\u05E9\u05DC\u05D5\u05DD\u2009\u05E2\u05D5\u05DC\u05DD\u202F\u05E9\u05D5\u05D1');
+        assert.ok(!text.includes('O'), 'unicode spaces must not glue words');
+        assertValidRows(split_to_rows(text, MAXLEN), text);
+    });
 });
 
 describe('remove_niqqud', () => {

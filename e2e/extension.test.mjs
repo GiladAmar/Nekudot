@@ -125,7 +125,7 @@ describe('extension end-to-end in Chrome', {skip: missing}, () => {
     });
 
     test('service worker initializes the wasm backend and loads the model', async () => {
-        const ready = await sw.evaluate(() => globalThis.__nekudotModelReady);
+        const ready = await sw.evaluate(() => globalThis.__nekudotEnsureModel());
         assert.equal(ready, true, 'model must load and warm up');
         const backend = await sw.evaluate(() => globalThis.__nekudotBackend);
         console.log(`# backend in real Chrome service worker: ${backend}`);
@@ -236,6 +236,39 @@ describe('extension end-to-end in Chrome', {skip: missing}, () => {
             `than the full run (${first.totalMs.toFixed(0)}ms)`);
         console.log(`# incremental re-run: full page ${(first.totalMs / 1000).toFixed(1)}s, ` +
             `new-content-only ${(incremental.totalMs / 1000).toFixed(1)}s (+${newDivMarks} marks)`);
+        await page.close();
+    });
+
+    test('whole-page menu ignores a surviving selection', async () => {
+        // Regression: the "Add nikud to the whole page" menu item used to
+        // route through the selection probe, so any leftover selection
+        // silently narrowed the scope to just that selection.
+        const fixture = FIXTURES.includes('hebrewnews-home.html') ? 'hebrewnews-home.html' : FIXTURES[0];
+        const page = await openFixture(fixture);
+
+        // Leave a small selection active, then invoke the whole-page entry
+        // exactly like the menu handler does.
+        await page.evaluate(() => {
+            const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+            let node;
+            while ((node = walker.nextNode()) && !/[א-ת]{4}/.test(node.textContent));
+            const range = document.createRange();
+            range.selectNodeContents(node);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+        });
+        const t0 = performance.now();
+        await sw.evaluate(async (url) => {
+            const [tab] = await chrome.tabs.query({url});
+            await chrome.scripting.executeScript({
+                target: {tabId: tab.id},
+                files: ['content_page.js'],
+            });
+        }, page.url());
+        const {count} = await waitForStable(page, 0, t0);
+        assert.ok(count > 500,
+            `whole-page mode must dot far more than the selection (got ${count} marks)`);
         await page.close();
     });
 

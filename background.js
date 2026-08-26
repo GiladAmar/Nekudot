@@ -47,9 +47,21 @@ async function load_model() {
     return model;
 }
 
-const model = load_model();
-// observability (e2e tests): resolves true once the model is loaded & warm
-globalThis.__nekudotModelReady = model.then(() => true, () => false);
+// Lazy + memoized: the service worker wakes for plenty of model-free work
+// (Remove nikud, opening the paste page, frame probes) and must not pay
+// backend init + 10MB of weights + warm-up for those. The add-nikud call
+// sites prefetch so the model loads while the content script collects text.
+let modelPromise = null;
+function getModel() {
+    if (!modelPromise) {
+        modelPromise = load_model();
+        // observability (e2e tests)
+        globalThis.__nekudotModelReady = modelPromise.then(() => true, () => false);
+    }
+    return modelPromise;
+}
+// observability (e2e tests): force the lazy load and await readiness
+globalThis.__nekudotEnsureModel = () => getModel().then(() => true, () => false);
 
 // Probe every frame for a live selection (in the DOM or inside a focused
 // input/textarea), then inject `file` into exactly the frames that have
@@ -57,6 +69,8 @@ globalThis.__nekudotModelReady = model.then(() => true, () => false);
 // The entry files self-select their behavior from the frame's state.
 async function invoke(tab, file) {
     if (!tab || tab.id === undefined) return;
+    if (file === 'content.js')
+        getModel(); // prefetch: load overlaps with text collection
     try {
         const probes = await chrome.scripting.executeScript({
             target: {tabId: tab.id, allFrames: true},
@@ -110,9 +124,26 @@ chrome.runtime.onInstalled.addListener(() => {
     });
 });
 
+// Explicit whole-page request: no selection probe — a stray surviving
+// selection anywhere in the tab must not narrow the scope the user asked for.
+async function invokeWholePage(tab) {
+    if (!tab || tab.id === undefined) return;
+    getModel(); // prefetch
+    try {
+        await chrome.scripting.executeScript({
+            target: {tabId: tab.id},
+            files: ['content_page.js'],
+        });
+    } catch (e) {
+        console.warn('Nekudot: cannot run on this page', e);
+    }
+}
+
 chrome.contextMenus.onClicked.addListener((info, tab) => {
     if (info.menuItemId === 'nekudot-remove')
         invoke(tab, 'content_undo.js');
+    else if (info.menuItemId === 'nekudot-page')
+        invokeWholePage(tab);
     else if (info.menuItemId === 'nekudot-paste-page')
         chrome.tabs.create({url: chrome.runtime.getURL('paste.html')});
     else
@@ -135,7 +166,7 @@ function post(port, message) {
 async function handleRequest(port, segments) {
     let m;
     try {
-        m = await model;
+        m = await getModel();
     } catch (e) {
         console.error('Nekudot: model failed to load', e);
         post(port, {type: 'fatal', reason: 'model failed to load'});
