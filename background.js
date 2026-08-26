@@ -48,14 +48,58 @@ async function load_model() {
 
 const model = load_model();
 
-function inject(tab) {
-    chrome.scripting.executeScript({
-        target: {tabId: tab.id},
-        files: ['content.js'],
-    });
+// Probe every frame for a live selection: inject the selection entry into
+// exactly the frames that have one; with no selection anywhere, run
+// whole-page mode in the top frame.
+async function invoke(tab) {
+    if (!tab || tab.id === undefined) return;
+    try {
+        const probes = await chrome.scripting.executeScript({
+            target: {tabId: tab.id, allFrames: true},
+            func: () => {
+                const s = window.getSelection();
+                return !!(s && s.rangeCount > 0 && !s.getRangeAt(0).collapsed);
+            },
+        });
+        const frameIds = probes.filter(p => p && p.result).map(p => p.frameId);
+        if (frameIds.length > 0) {
+            await chrome.scripting.executeScript({
+                target: {tabId: tab.id, frameIds},
+                files: ['content.js'],
+            });
+        } else {
+            await chrome.scripting.executeScript({
+                target: {tabId: tab.id},
+                files: ['content_page.js'],
+            });
+        }
+    } catch (e) {
+        console.warn('Nekudot: cannot run on this page', e);
+    }
 }
 
-chrome.action.onClicked.addListener(inject);
+chrome.action.onClicked.addListener(invoke);
+
+chrome.runtime.onInstalled.addListener(() => {
+    chrome.contextMenus.removeAll(() => {
+        chrome.contextMenus.create({
+            id: 'nekudot-selection',
+            title: 'הוסף ניקוד',
+            contexts: ['selection'],
+        });
+        chrome.contextMenus.create({
+            id: 'nekudot-page',
+            title: 'הוסף ניקוד לכל הדף',
+            contexts: ['page'],
+        });
+    });
+});
+
+chrome.contextMenus.onClicked.addListener((info, tab) => invoke(tab));
+
+chrome.commands.onCommand.addListener((command, tab) => {
+    if (command === 'add-nekudot') invoke(tab);
+});
 
 function post(port, message) {
     try {

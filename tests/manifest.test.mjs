@@ -25,7 +25,11 @@ describe('manifest', () => {
 
     test('permissions stay minimal', () => {
         assert.deepEqual([...manifest.permissions].sort(),
-            ['activeTab', 'scripting']);
+            ['activeTab', 'contextMenus', 'scripting']);
+    });
+
+    test('keyboard command is declared', () => {
+        assert.ok(manifest.commands['add-nekudot'].suggested_key.default);
     });
 
     test('CSP allows WebAssembly for the wasm backend', () => {

@@ -51,11 +51,11 @@ Implemented as a chain of stacked PRs, one theme at a time.
 
 ## 3. New features
 
-- [ ] **Context-menu entry and keyboard shortcut** — more discoverable than
+- [x] **Context-menu entry and keyboard shortcut** — more discoverable than
   the toolbar icon.
-- [ ] **Iframe selections** — `executeScript` currently targets only the top
+- [x] **Iframe selections** — `executeScript` currently targets only the top
   frame, silently ignoring text selected inside embedded frames.
-- [ ] **Whole-page mode** — with no selection, dot all Hebrew text on the page.
+- [x] **Whole-page mode** — with no selection, dot all Hebrew text on the page.
 - [ ] **Toggle/undo** — second invocation restores the original text.
 - [ ] **Editable-field support** — `<textarea>`, `<input>`, `contenteditable`
   (Gmail compose, comment boxes).
