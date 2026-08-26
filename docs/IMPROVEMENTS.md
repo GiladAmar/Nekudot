@@ -56,10 +56,10 @@ Implemented as a chain of stacked PRs, one theme at a time.
 - [x] **Iframe selections** — `executeScript` currently targets only the top
   frame, silently ignoring text selected inside embedded frames.
 - [x] **Whole-page mode** — with no selection, dot all Hebrew text on the page.
-- [ ] **Toggle/undo** — second invocation restores the original text.
-- [ ] **Editable-field support** — `<textarea>`, `<input>`, `contenteditable`
+- [x] **Toggle/undo** — second invocation restores the original text.
+- [x] **Editable-field support** — `<textarea>`, `<input>`, `contenteditable`
   (Gmail compose, comment boxes).
-- [ ] **Paste page** — a simple extension page with a paste box: works on
+- [x] **Paste page** — a simple extension page with a paste box: works on
   sites where DOM rewriting can't (canvas-rendered apps, Word Online, etc.).
 
 ## Out of scope (future)

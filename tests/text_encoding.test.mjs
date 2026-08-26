@@ -93,6 +93,17 @@ describe('split_to_rows', () => {
     });
 });
 
+describe('remove_niqqud', () => {
+    test('strips all niqqud, dagesh and cantillation marks', () => {
+        assert.equal(remove_niqqud('\u05E9\u05B8\u05C1\u05DC\u05D5\u05B9\u05DD'), '\u05E9\u05DC\u05D5\u05DD');
+        assert.equal(remove_niqqud('\u05D1\u05BC\u05B0\u05E8\u05B5\u05D0\u05E9\u05B4\u05C1\u05D9\u05EA'), '\u05D1\u05E8\u05D0\u05E9\u05D9\u05EA');
+    });
+    test('leaves unmarked text alone', () => {
+        const text = '\u05E9\u05DC\u05D5\u05DD hello 123';
+        assert.equal(remove_niqqud(text), text);
+    });
+});
+
 describe('end-to-end with the real model', () => {
     let model;
 

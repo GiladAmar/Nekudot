@@ -48,37 +48,38 @@ async function load_model() {
 
 const model = load_model();
 
-// Probe every frame for a live selection: inject the selection entry into
-// exactly the frames that have one; with no selection anywhere, run
-// whole-page mode in the top frame.
-async function invoke(tab) {
+// Probe every frame for a live selection (in the DOM or inside a focused
+// input/textarea), then inject `file` into exactly the frames that have
+// one — or into the top frame alone (whole-page mode) when none does.
+// The entry files self-select their behavior from the frame's state.
+async function invoke(tab, file) {
     if (!tab || tab.id === undefined) return;
     try {
         const probes = await chrome.scripting.executeScript({
             target: {tabId: tab.id, allFrames: true},
             func: () => {
                 const s = window.getSelection();
-                return !!(s && s.rangeCount > 0 && !s.getRangeAt(0).collapsed);
+                if (s && s.rangeCount > 0 && !s.getRangeAt(0).collapsed) return true;
+                const el = document.activeElement;
+                if (el && (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT')) {
+                    try {
+                        return el.selectionStart != null && el.selectionStart !== el.selectionEnd;
+                    } catch (e) { /* unsupported input type */ }
+                }
+                return false;
             },
         });
         const frameIds = probes.filter(p => p && p.result).map(p => p.frameId);
-        if (frameIds.length > 0) {
-            await chrome.scripting.executeScript({
-                target: {tabId: tab.id, frameIds},
-                files: ['content.js'],
-            });
-        } else {
-            await chrome.scripting.executeScript({
-                target: {tabId: tab.id},
-                files: ['content_page.js'],
-            });
-        }
+        await chrome.scripting.executeScript({
+            target: frameIds.length > 0 ? {tabId: tab.id, frameIds} : {tabId: tab.id},
+            files: [file],
+        });
     } catch (e) {
         console.warn('Nekudot: cannot run on this page', e);
     }
 }
 
-chrome.action.onClicked.addListener(invoke);
+chrome.action.onClicked.addListener(tab => invoke(tab, 'content.js'));
 
 chrome.runtime.onInstalled.addListener(() => {
     chrome.contextMenus.removeAll(() => {
@@ -92,13 +93,30 @@ chrome.runtime.onInstalled.addListener(() => {
             title: 'הוסף ניקוד לכל הדף',
             contexts: ['page'],
         });
+        chrome.contextMenus.create({
+            id: 'nekudot-remove',
+            title: 'הסר ניקוד',
+            contexts: ['selection', 'page'],
+        });
+        chrome.contextMenus.create({
+            id: 'nekudot-paste-page',
+            title: 'פתח דף ניקוד (הדבקה)',
+            contexts: ['action'],
+        });
     });
 });
 
-chrome.contextMenus.onClicked.addListener((info, tab) => invoke(tab));
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+    if (info.menuItemId === 'nekudot-remove')
+        invoke(tab, 'content_undo.js');
+    else if (info.menuItemId === 'nekudot-paste-page')
+        chrome.tabs.create({url: chrome.runtime.getURL('paste.html')});
+    else
+        invoke(tab, 'content.js');
+});
 
 chrome.commands.onCommand.addListener((command, tab) => {
-    if (command === 'add-nekudot') invoke(tab);
+    if (command === 'add-nekudot') invoke(tab, 'content.js');
 });
 
 function post(port, message) {

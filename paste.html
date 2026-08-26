@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <title>נקודות — ניקוד טקסט</title>
+    <style>
+        :root {
+            color-scheme: light dark;
+            --bg: #fff;
+            --fg: #1a1a1a;
+            --border: #ccc;
+            --accent: #2563eb;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root { --bg: #1e1e1e; --fg: #eee; --border: #444; }
+        }
+        body {
+            margin: 0 auto;
+            max-width: 720px;
+            padding: 24px 16px;
+            background: var(--bg);
+            color: var(--fg);
+            font: 16px/1.6 sans-serif;
+        }
+        h1 { font-size: 20px; margin: 0 0 16px; }
+        textarea {
+            width: 100%;
+            min-height: 160px;
+            box-sizing: border-box;
+            padding: 12px;
+            font: inherit;
+            color: inherit;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            resize: vertical;
+        }
+        .row { display: flex; gap: 8px; margin: 12px 0; align-items: center; }
+        button {
+            font: inherit;
+            padding: 8px 20px;
+            border: none;
+            border-radius: 8px;
+            background: var(--accent);
+            color: #fff;
+            cursor: pointer;
+        }
+        button:disabled { opacity: .5; cursor: default; }
+        button.secondary { background: transparent; color: inherit; border: 1px solid var(--border); }
+        #status { font-size: 14px; opacity: .75; }
+    </style>
+</head>
+<body>
+<h1>ניקוד טקסט</h1>
+<textarea id="input" placeholder="הדביקו כאן טקסט בעברית..." autofocus></textarea>
+<div class="row">
+    <button id="run">נַקֵּד</button>
+    <span id="status"></span>
+</div>
+<textarea id="output" readonly placeholder="הטקסט המנוקד יופיע כאן"></textarea>
+<div class="row">
+    <button id="copy" class="secondary" disabled>העתקה</button>
+</div>
+<script type="module" src="paste.js"></script>
+</body>
+</html>
