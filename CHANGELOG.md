@@ -52,6 +52,10 @@
 - **English-first interface**: menu items, buttons and messages are in
   English (with Hebrew alongside where it helps) — the extension is for
   people learning Hebrew, so the controls shouldn't require it.
+- **Smart re-runs**: running again on the same page only processes text that
+  is new since the last run. On sites that keep loading articles as you
+  scroll, scroll down and run again — only the new content is processed,
+  in a fraction of the time, and text that already has nikud is left alone.
 
 ### Privacy
 

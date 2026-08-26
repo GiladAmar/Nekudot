@@ -7,6 +7,20 @@ function hasHebrew(text) {
     return HEBREW_RE.test(text);
 }
 
+// Text whose Hebrew letters already largely carry marks needs no work —
+// either this extension dotted it on a previous run (and the node was
+// since replaced by the page, losing its registry entry), or the content
+// came dotted. Fully dotted Hebrew has roughly one mark per letter;
+// half-dotted is a safe threshold that still processes lightly-marked
+// learning texts. Lets a re-run on an infinite-scroll page process only
+// the newly loaded content.
+function isMostlyDotted(text) {
+    const letters = (text.match(/[א-ת]/g) || []).length;
+    if (letters === 0) return false;
+    const marks = (text.match(/[\u05B0-\u05BC\u05C1\u05C2]/g) || []).length;
+    return marks >= letters * 0.5;
+}
+
 // The part of one text node covered by a Range. Ranges are always ordered
 // (unlike Selection anchor/extent), so no direction handling is needed.
 // Offsets are clamped: when the range's start/end container is not a text
@@ -28,4 +42,4 @@ function nodeSegment(text, isStartContainer, isEndContainer, rangeStartOffset, r
     return {prefix: text.slice(0, start), middle, suffix: text.slice(end)};
 }
 
-export {hasHebrew, segmentRange, nodeSegment};
+export {hasHebrew, isMostlyDotted, segmentRange, nodeSegment};

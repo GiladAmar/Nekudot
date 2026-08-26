@@ -1,6 +1,6 @@
 import {test, describe} from 'node:test';
 import assert from 'node:assert/strict';
-import {hasHebrew, segmentRange, nodeSegment} from '../content_lib.mjs';
+import {hasHebrew, isMostlyDotted, segmentRange, nodeSegment} from '../content_lib.mjs';
 
 describe('hasHebrew', () => {
     test('detects Hebrew letters', () => {
@@ -11,6 +11,23 @@ describe('hasHebrew', () => {
         assert.ok(!hasHebrew('hello 123'));
         assert.ok(!hasHebrew('ְָֹ'));
         assert.ok(!hasHebrew(''));
+    });
+});
+
+describe('isMostlyDotted', () => {
+    test('undotted Hebrew is not skipped', () => {
+        assert.equal(isMostlyDotted('שלום עולם, זהו טקסט רגיל'), false);
+    });
+    test('fully dotted Hebrew is skipped', () => {
+        assert.equal(isMostlyDotted('שָׁלוֹם עוֹלָם'), true);
+    });
+    test('lightly dotted learning text is still processed', () => {
+        // one dotted word inside a long undotted sentence
+        assert.equal(isMostlyDotted('שָׁלוֹם is one word inside טקסט ארוך בלי ניקוד בכלל כאן'), false);
+    });
+    test('no Hebrew means nothing to skip', () => {
+        assert.equal(isMostlyDotted('hello world 123'), false);
+        assert.equal(isMostlyDotted(''), false);
     });
 });
 

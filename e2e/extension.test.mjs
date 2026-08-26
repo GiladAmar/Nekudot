@@ -178,4 +178,84 @@ describe('extension end-to-end in Chrome', {skip: missing}, () => {
             await page.close();
         });
     }
+
+    test('infinite-scroll re-run: only newly loaded content is processed', async () => {
+        const fixture = FIXTURES.includes('hebrewnews-home.html') ? 'hebrewnews-home.html' : FIXTURES[0];
+        const page = await browser.newPage();
+        await page.setRequestInterception(true);
+        page.on('request', req =>
+            req.url().startsWith(origin) ? req.continue() : req.abort());
+        const url = `${origin}/${fixture}`;
+        await page.goto(url, {waitUntil: 'domcontentloaded', timeout: 30000});
+
+        const selectAll = () => page.evaluate(() => {
+            const range = document.createRange();
+            range.selectNodeContents(document.body);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+        });
+        const invoke = () => sw.evaluate(async (url) => {
+            const [tab] = await chrome.tabs.query({url});
+            await chrome.scripting.executeScript({
+                target: {tabId: tab.id, allFrames: true},
+                files: ['content.js'],
+            });
+        }, url);
+        const markCount = () => page.evaluate((MARKS) =>
+            (document.body.innerText.match(new RegExp(`[${MARKS}]`, 'g')) || []).length, MARKS);
+        const waitForStable = async (baseline) => {
+            let last = baseline, stable = 0;
+            const deadline = Date.now() + 120000;
+            while (Date.now() < deadline) {
+                await new Promise(r => setTimeout(r, 500));
+                const n = await markCount();
+                stable = (n === last && n > baseline) ? stable + 1 : 0;
+                last = n;
+                if (stable >= 4) break;
+            }
+            return last;
+        };
+
+        // First full run.
+        await selectAll();
+        const t0 = performance.now();
+        await invoke();
+        const afterFirst = await waitForStable(0);
+        const firstMs = performance.now() - t0 - 2000;
+        assert.ok(afterFirst > 0);
+
+        // Re-run with nothing new: everything is registry-skipped or already
+        // dotted, so the mark count must not change.
+        await selectAll();
+        await invoke();
+        await new Promise(r => setTimeout(r, 4000));
+        const afterRerun = await markCount();
+        assert.equal(afterRerun, afterFirst,
+            're-running on an already-dotted page must not re-process anything');
+
+        // Simulate content loaded by scrolling, then Ctrl+A again.
+        await page.evaluate(() => {
+            const div = document.createElement('div');
+            div.id = 'scrolled-in';
+            div.textContent = 'תוכן חדש שנטען בגלילה: הממשלה אישרה היום תוכנית חדשה ' +
+                'לשיפור התחבורה הציבורית בערים הגדולות ברחבי הארץ';
+            document.body.appendChild(div);
+        });
+        await selectAll();
+        const t1 = performance.now();
+        await invoke();
+        const afterNew = await waitForStable(afterRerun);
+        const incrementalMs = performance.now() - t1 - 2000;
+
+        const newDivMarks = await page.evaluate((MARKS) =>
+            (document.getElementById('scrolled-in').textContent
+                .match(new RegExp(`[${MARKS}]`, 'g')) || []).length, MARKS);
+        assert.ok(newDivMarks > 10, 'the scrolled-in content must receive niqqud');
+        assert.equal(afterNew - afterFirst, newDivMarks,
+            'a re-run must add marks only inside the newly loaded content');
+        console.log(`# incremental re-run: full page ${(firstMs / 1000).toFixed(1)}s, ` +
+            `new-content-only ${(incrementalMs / 1000).toFixed(1)}s (+${newDivMarks} marks)`);
+        await page.close();
+    });
 });
