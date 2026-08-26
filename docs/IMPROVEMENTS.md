@@ -41,7 +41,7 @@ Implemented as a chain of stacked PRs, one theme at a time.
   backend instead of the full 1.13 MB `@tensorflow/tfjs`.
 - [x] **Benchmark WASM backend** (SIMD/threads) against the current setup;
   small-batch BiLSTMs over 90 timesteps are often CPU-bound.
-- [ ] **GraphModel conversion + float16 quantization**: the Python
+- [x] **GraphModel conversion + float16 quantization**: the Python
   `tensorflowjs_converter` cannot deserialize this model (Keras 2.19 weight
   naming mismatch: `KeyError: 'bidirectional/forward_lstm/kernel'`).
   Plan B: quantize the weights manifest to float16 directly in Node —
