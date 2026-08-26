@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    width: 1280px; height: 800px; margin: 0; overflow: hidden;
+    font-family: Inter, sans-serif;
+    background: linear-gradient(180deg, #f2f6fc 0%, #e3ebf7 100%);
+    color: #0f172a;
+  }
+  .header { text-align: center; padding: 52px 80px 40px; }
+  h1 { font-size: 40px; font-weight: 800; letter-spacing: -0.8px; margin: 0 0 12px; }
+  h1 .accent { color: #2563eb; }
+  .sub { font-size: 19px; color: #47566e; margin: 0 auto; max-width: 900px; line-height: 1.5; font-weight: 500; }
+  .frames { display: flex; gap: 30px; justify-content: center; padding: 24px 36px 0; }
+  .col { width: 585px; position: relative; }
+  .chip {
+    position: absolute; top: -14px; left: 50%; transform: translateX(-50%); z-index: 3;
+    font-size: 14px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+    padding: 7px 18px; border-radius: 999px; box-shadow: 0 4px 12px rgba(15,23,42,.15);
+  }
+  .chip.before { background: #fff; color: #64748b; }
+  .chip.after { background: #facc15; color: #172554; }
+  .browser {
+    background: #fff; border-radius: 12px; overflow: hidden;
+    box-shadow: 0 24px 48px rgba(15, 23, 42, .16);
+  }
+  .bar { height: 38px; background: #e9edf3; display: flex; align-items: center; padding: 0 14px; gap: 7px; }
+  .dot { width: 11px; height: 11px; border-radius: 50%; }
+  .url {
+    flex: 1; background: #fff; border-radius: 999px; height: 24px; margin: 0 8px;
+    font-size: 12.5px; color: #64748b; display: flex; align-items: center; padding: 0 12px; gap: 6px;
+  }
+  .bar img.ext { width: 18px; height: 18px; border-radius: 4px; }
+  .page { width: 100%; display: block; }
+  .lens {
+    position: absolute; right: -18px; bottom: -46px; z-index: 4;
+    width: 310px; height: 310px; border-radius: 50%;
+    border: 7px solid #facc15; overflow: hidden; background: #fff;
+    box-shadow: 0 24px 56px rgba(15, 23, 42, .35);
+  }
+  .lens img { position: absolute; width: 1560px; left: -1268px; top: -6px; }
+  .lens-label {
+    position: absolute; right: 288px; bottom: -10px; z-index: 5;
+    background: #172554; color: #fff; font-size: 15.5px; font-weight: 600;
+    padding: 11px 20px; border-radius: 999px; box-shadow: 0 8px 20px rgba(15,23,42,.3);
+    white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Nothing selected? <span class="accent">The whole page gets nikud</span></h1>
+  <p class="sub">This live Wikipedia article received 17,000+ vowel marks in a few seconds — results stream onto the page as they're computed, entirely on your device.</p>
+</div>
+<div class="frames">
+  <div class="col">
+    <span class="chip before">Before</span>
+    <div class="browser">
+      <div class="bar">
+        <span class="dot" style="background:#f87171"></span>
+        <span class="dot" style="background:#fbbf24"></span>
+        <span class="dot" style="background:#34d399"></span>
+        <div class="url">🔒 he.wikipedia.org/wiki/עברית</div>
+      </div>
+      <img class="page" src="raw/wiki-before.png">
+    </div>
+  </div>
+  <div class="col">
+    <span class="chip after">After</span>
+    <div class="browser">
+      <div class="bar">
+        <span class="dot" style="background:#f87171"></span>
+        <span class="dot" style="background:#fbbf24"></span>
+        <span class="dot" style="background:#34d399"></span>
+        <div class="url">🔒 he.wikipedia.org/wiki/עברית</div>
+        <img class="ext" src="final/icons/aleph_512.png">
+      </div>
+      <img class="page" src="raw/wiki-after.png">
+    </div>
+    <div class="lens"><img src="raw/wiki-p-after.png"></div>
+    <div class="lens-label">every word, fully vowelized</div>
+  </div>
+</div>
+</body>
+</html>

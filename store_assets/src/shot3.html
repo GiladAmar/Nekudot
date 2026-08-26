@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    width: 1280px; height: 800px; margin: 0; overflow: hidden;
+    font-family: Inter, sans-serif;
+    background: linear-gradient(180deg, #f2f6fc 0%, #e3ebf7 100%);
+    color: #0f172a;
+  }
+  .header { text-align: center; padding: 46px 80px 30px; }
+  h1 { font-size: 40px; font-weight: 800; letter-spacing: -0.8px; margin: 0 0 12px; }
+  h1 .accent { color: #2563eb; }
+  .sub { font-size: 19px; color: #47566e; margin: 0 auto; max-width: 700px; line-height: 1.5; font-weight: 500; }
+  .stage { position: relative; width: 1060px; margin: 10px auto 0; }
+  .browser {
+    background: #fff; border-radius: 12px 12px 0 0; overflow: hidden;
+    box-shadow: 0 24px 48px rgba(15, 23, 42, .18);
+  }
+  .bar { height: 44px; background: #e9edf3; display: flex; align-items: center; padding: 0 16px; gap: 8px; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; }
+  .url {
+    flex: 1; background: #fff; border-radius: 999px; height: 28px; margin: 0 10px;
+    font-size: 13.5px; color: #64748b; display: flex; align-items: center; padding: 0 14px; gap: 6px;
+  }
+  .exticon { position: relative; }
+  .exticon img { width: 26px; height: 26px; border-radius: 6px; display: block;
+    outline: 3px solid #facc15; outline-offset: 2px; }
+  .page-wrap { height: 480px; overflow: hidden; position: relative; }
+  .page { width: 100%; display: block; filter: saturate(.92); margin-top: -86px; }
+  .page-dim { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(23,37,84,.06), rgba(23,37,84,.28)); }
+
+  .card {
+    position: absolute; background: #fff; border-radius: 14px;
+    box-shadow: 0 18px 44px rgba(15, 23, 42, .35);
+  }
+  .card .head {
+    font-size: 13.5px; font-weight: 700; color: #64748b; letter-spacing: .07em;
+    text-transform: uppercase; padding: 14px 18px 8px;
+  }
+  /* context menu */
+  .menu { left: 70px; top: 120px; width: 330px; padding-bottom: 10px; }
+  .menu .item {
+    font-size: 16.5px; font-weight: 500; padding: 11px 18px; display: flex; align-items: center; gap: 10px;
+  }
+  .menu .item.hover { background: #2563eb; color: #fff; border-radius: 8px; margin: 0 8px; padding: 11px 10px; }
+  .menu .sep { border-top: 1px solid #e2e8f0; margin: 6px 0; }
+  .cursor { position: absolute; left: 296px; top: 172px; width: 26px; z-index: 10; }
+  /* shortcut card */
+  .keys { right: 60px; top: 130px; width: 330px; padding-bottom: 18px; }
+  .keyrow { display: flex; gap: 9px; padding: 8px 18px 4px; align-items: center; }
+  .key {
+    min-width: 46px; height: 46px; border-radius: 9px; background: #f1f5f9;
+    border: 1.5px solid #cbd5e1; border-bottom-width: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 19px; font-weight: 700; color: #172554; padding: 0 12px;
+  }
+  .plus { color: #94a3b8; font-weight: 700; font-size: 18px; }
+  .keynote { font-size: 14.5px; color: #64748b; padding: 8px 18px 0; }
+  /* toolbar callout */
+  .callout {
+    position: absolute; right: 6px; top: -58px;
+    background: #172554; color: #fff; border-radius: 12px;
+    font-size: 15.5px; font-weight: 600; padding: 12px 18px;
+    box-shadow: 0 14px 34px rgba(15,23,42,.4);
+  }
+  .callout:after {
+    content: ''; position: absolute; right: 26px; bottom: -8px;
+    border-left: 9px solid transparent; border-right: 9px solid transparent;
+    border-top: 9px solid #172554;
+  }
+  .footer {
+    position: absolute; left: 50%; transform: translateX(-50%); bottom: 26px;
+    background: #172554; color: #fff; border-radius: 999px;
+    font-size: 17px; font-weight: 600; padding: 14px 30px;
+    box-shadow: 0 16px 40px rgba(15,23,42,.45); white-space: nowrap; z-index: 20;
+  }
+  .footer .gold { color: #facc15; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Run it <span class="accent">your way</span></h1>
+  <p class="sub">The toolbar icon, the right-click menu, or a keyboard shortcut — and "Remove nikud" undoes everything, restoring the page exactly.</p>
+</div>
+<div class="stage">
+  <div class="browser">
+    <div class="bar">
+      <span class="dot" style="background:#f87171"></span>
+      <span class="dot" style="background:#fbbf24"></span>
+      <span class="dot" style="background:#34d399"></span>
+      <div class="url">🔒 ynet.co.il</div>
+      <div class="exticon"><img src="final/icons/aleph_512.png"></div>
+    </div>
+    <div class="page-wrap">
+      <img class="page" src="raw/ynet-after.png">
+      <div class="page-dim"></div>
+    </div>
+  </div>
+
+  <div class="callout">1 · Click the Nekudot icon</div>
+
+  <div class="card menu">
+    <div class="head">2 · Or right-click any page</div>
+    <div class="item hover">
+      Add nikud (הוסף ניקוד)
+    </div>
+    <div class="item">Add nikud to the whole page</div>
+    <div class="sep"></div>
+    <div class="item">Remove nikud (הסר ניקוד)</div>
+  </div>
+  <svg class="cursor" viewBox="0 0 24 24"><path d="M5 2l14 12-6.5.6L16 21l-3.4 1.4-3.4-6.4L5 20z" fill="#fff" stroke="#172554" stroke-width="1.6"/></svg>
+
+  <div class="card keys">
+    <div class="head">3 · Or press the shortcut</div>
+    <div class="keyrow">
+      <span class="key">⌘</span><span class="plus">+</span>
+      <span class="key">⇧</span><span class="plus">+</span>
+      <span class="key">Y</span>
+    </div>
+    <div class="keynote">Ctrl+Shift+Y on Windows · remappable in Chrome</div>
+  </div>
+
+  <div class="footer">Selection only? <span class="gold">Highlight text first</span> — only the selection gets nikud</div>
+</div>
+</body>
+</html>

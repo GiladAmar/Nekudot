@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    width: 1280px; height: 800px; margin: 0; overflow: hidden;
+    font-family: Inter, sans-serif;
+    background: linear-gradient(180deg, #f2f6fc 0%, #e3ebf7 100%);
+    color: #0f172a;
+  }
+  .header { text-align: center; padding: 46px 80px 8px; }
+  h1 { font-size: 40px; font-weight: 800; letter-spacing: -0.8px; margin: 0 0 12px; }
+  h1 .accent { color: #2563eb; }
+  .sub { font-size: 19px; color: #47566e; margin: 0 auto; max-width: 780px; line-height: 1.5; font-weight: 500; }
+  .row { display: flex; gap: 44px; padding: 30px 62px 0; align-items: center; }
+  .left { width: 400px; flex: none; }
+  .step { display: flex; gap: 16px; margin-bottom: 26px; align-items: flex-start; }
+  .num {
+    width: 40px; height: 40px; flex: none; border-radius: 50%;
+    background: #172554; color: #facc15; font-weight: 800; font-size: 19px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .step .t { font-size: 18.5px; line-height: 1.45; font-weight: 500; color: #1e293b; padding-top: 6px; }
+  .step .t b { font-weight: 700; }
+  .note {
+    margin-top: 6px; background: #fff; border-left: 5px solid #facc15;
+    border-radius: 10px; padding: 14px 18px; font-size: 16px; line-height: 1.5;
+    color: #47566e; box-shadow: 0 8px 22px rgba(15,23,42,.08); font-weight: 500;
+  }
+  .right { flex: 1; position: relative; }
+  .browser {
+    background: #fff; border-radius: 12px; overflow: hidden;
+    box-shadow: 0 24px 48px rgba(15, 23, 42, .18);
+  }
+  .bar { height: 40px; background: #e9edf3; display: flex; align-items: center; padding: 0 14px; gap: 8px; }
+  .dot { width: 11px; height: 11px; border-radius: 50%; }
+  .url {
+    flex: 1; background: #fff; border-radius: 999px; height: 26px; margin: 0 10px;
+    font-size: 13px; color: #64748b; display: flex; align-items: center; padding: 0 12px; gap: 6px;
+  }
+  .bar img.ext { width: 20px; height: 20px; border-radius: 5px; }
+  .page-wrap { height: 505px; overflow: hidden; }
+  .page { width: 129%; display: block; margin-left: -17%; margin-top: -10px; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Google Docs? Word Online? <span class="accent">Use the paste page</span></h1>
+  <p class="sub">Some pages can't be edited by any extension — so Nekudot ships its own.</p>
+</div>
+<div class="row">
+  <div class="left">
+    <div class="step"><div class="num">1</div><div class="t"><b>Right-click the Nekudot icon</b> and choose "Open paste page".</div></div>
+    <div class="step"><div class="num">2</div><div class="t"><b>Paste your Hebrew text</b> and click Add Nikud.</div></div>
+    <div class="step"><div class="num">3</div><div class="t"><b>Copy the dotted text</b> back into your document.</div></div>
+    <div class="note">On regular websites you don't need this — Nekudot edits text right in the page, including inside text boxes like Gmail compose.</div>
+  </div>
+  <div class="right">
+    <div class="browser">
+      <div class="bar">
+        <span class="dot" style="background:#f87171"></span>
+        <span class="dot" style="background:#fbbf24"></span>
+        <span class="dot" style="background:#34d399"></span>
+        <div class="url">Nekudot — Add Nikud to Text</div>
+        <img class="ext" src="final/icons/aleph_512.png">
+      </div>
+      <div class="page-wrap">
+        <img class="page" src="raw/paste-after.png">
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
