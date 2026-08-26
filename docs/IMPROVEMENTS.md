@@ -6,14 +6,14 @@ Implemented as a chain of stacked PRs, one theme at a time.
 
 ## 1. Robustness
 
-- [ ] **Structured error responses.** On model failure the background responds
+- [x] **Structured error responses.** On model failure the background responds
   `{processed: 'error'}` and `content.js` splices the literal word "error" into
   the page. Replace with `{ok: false, reason}`; the content script must leave
   the DOM untouched and show a small toast instead.
-- [ ] **Always respond.** An exception inside `model.then(...)` (e.g. GPU OOM)
+- [x] **Always respond.** An exception inside `model.then(...)` (e.g. GPU OOM)
   never calls `sendResponse`, leaving the content script waiting forever.
   Wrap in try/catch and always answer.
-- [ ] **Per-node protocol instead of word-count splice-back.** `insertResult`
+- [x] **Per-node protocol instead of word-count splice-back.** `insertResult`
   maps results back into DOM nodes by counting words with a regex that differs
   from the background tokenizer; any disagreement shifts text between nodes.
   Send per-node segments with ids, get per-node results back — no word
@@ -24,7 +24,7 @@ Implemented as a chain of stacked PRs, one theme at a time.
   against an empty selection; the click handler already injects on demand.
 - [x] **Stop exposing `model/*` to `<all_urls>`.** Only the extension fetches
   the model; web accessibility just enables fingerprinting.
-- [ ] **Cap and chunk input.** Process rows in chunks so the service worker
+- [x] **Cap and chunk input.** Process rows in chunks so the service worker
   stays responsive on huge selections and progress can be reported.
 - [x] **CI.** GitHub Actions running `npm test` on every PR.
 
@@ -43,7 +43,7 @@ Implemented as a chain of stacked PRs, one theme at a time.
   small-batch BiLSTMs over 90 timesteps are often CPU-bound.
 - [ ] **GraphModel conversion + float16 quantization** (if the converter
   tooling cooperates): fused kernels, roughly half the 21 MB weight download.
-- [ ] **Stream results** — apply per-segment results to the page as they
+- [x] **Stream results** — apply per-segment results to the page as they
   arrive so large selections look "working", not frozen.
 
 ## 3. New features
