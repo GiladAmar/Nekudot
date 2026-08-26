@@ -11,16 +11,6 @@
     "activeTab",
     "scripting"
   ],
-  "web_accessible_resources": [
-    {
-      "matches": [
-        "<all_urls>"
-      ],
-      "resources": [
-        "model/*"
-      ]
-    }
-  ],
   "action": {
     "default_icon": {
       "16": "/images/aleph_16.png",
@@ -34,17 +24,5 @@
     "32": "/images/aleph_32.png",
     "48": "/images/aleph_48.png",
     "128": "/images/aleph_128.png"
-  },
-  "content_scripts": [
-    {
-      "matches": [
-        "<all_urls>"
-      ],
-      "js": [
-        "content.js"
-      ],
-      "all_frames": true,
-      "run_at": "document_start"
-    }
-  ]
+  }
 }

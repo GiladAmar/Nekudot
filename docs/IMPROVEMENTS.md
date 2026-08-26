@@ -19,14 +19,14 @@ Implemented as a chain of stacked PRs, one theme at a time.
   Send per-node segments with ids, get per-node results back — no word
   counting. Also excludes `<script>`/`<style>` text nodes (a Ctrl+A range can
   intersect Hebrew-containing JSON-LD, which would get rewritten today).
-- [ ] **Drop the always-on content script.** `manifest.json` injects
+- [x] **Drop the always-on content script.** `manifest.json` injects
   `content.js` into every page and iframe at `document_start`, where it runs
   against an empty selection; the click handler already injects on demand.
-- [ ] **Stop exposing `model/*` to `<all_urls>`.** Only the extension fetches
+- [x] **Stop exposing `model/*` to `<all_urls>`.** Only the extension fetches
   the model; web accessibility just enables fingerprinting.
 - [ ] **Cap and chunk input.** Process rows in chunks so the service worker
   stays responsive on huge selections and progress can be reported.
-- [ ] **CI.** GitHub Actions running `npm test` on every PR.
+- [x] **CI.** GitHub Actions running `npm test` on every PR.
 
 ## 2. Speed
 
