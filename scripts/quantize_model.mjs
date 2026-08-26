@@ -56,6 +56,8 @@ function quantizeToFloat16(modelJSON, weightData) {
     let offset = 0;
     let outBytes = 0;
     for (const spec of specs) {
+        if (spec.quantization)
+            throw new Error(`weight ${spec.name} is already quantized — refusing to re-quantize`);
         const size = spec.shape.reduce((a, b) => a * b, 1);
         if (spec.dtype === 'float32') {
             const src = new Float32Array(size);
@@ -68,7 +70,10 @@ function quantizeToFloat16(modelJSON, weightData) {
             offset += size * 4;
             outBytes += size * 2;
         } else {
-            const byteLength = size * {int32: 4, uint8: 1, bool: 1}[spec.dtype];
+            const bytesPerElement = {int32: 4, uint8: 1, bool: 1}[spec.dtype];
+            if (!bytesPerElement)
+                throw new Error(`weight ${spec.name} has unsupported dtype ${spec.dtype}`);
+            const byteLength = size * bytesPerElement;
             parts.push(bytes.subarray(offset, offset + byteLength));
             newSpecs.push(spec);
             offset += byteLength;

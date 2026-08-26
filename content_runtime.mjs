@@ -1,4 +1,5 @@
 // Shared DOM runtime for the content entry points (selection & whole-page).
+import {collectSegments} from './content_lib.mjs';
 
 /**
  * Collect text nodes under root, optionally restricted to a Range, skipping
@@ -50,7 +51,10 @@ function scopedTextNodes() {
 }
 
 function showToast(message) {
+    const previous = document.getElementById('__nekudot-toast');
+    if (previous) previous.remove();
     const toast = document.createElement('div');
+    toast.id = '__nekudot-toast';
     toast.textContent = message;
     toast.style.cssText = 'position:fixed;top:16px;right:16px;z-index:2147483647;' +
         'background:#333;color:#fff;padding:10px 16px;border-radius:6px;' +
@@ -83,8 +87,11 @@ function getRegistry() {
  * If the run fails part-way (a 'fatal' message, or the service worker dying
  * and disconnecting the port), everything already applied in THIS run is
  * rolled back so the page is never left half-processed.
+ *
+ * Optional callbacks: onDone() after a successful run; onFail(message)
+ * after rollback on failure (default: a toast).
  */
-function requestDiacritics(segments, pending) {
+function requestDiacritics(segments, pending, {onDone, onFail} = {}) {
     if (segments.length === 0) return;
 
     const registry = getRegistry();
@@ -95,6 +102,9 @@ function requestDiacritics(segments, pending) {
         const node = entry.node;
         if (!node.isConnected) return;
         const before = node.textContent;
+        // The page may have changed this node while the model ran (live
+        // ticker, SPA re-render): never apply over text we didn't collect.
+        if (before !== entry.whole) return;
         if (!registry.has(node))
             registry.set(node, {original: before, written: null});
         const record = registry.get(node);
@@ -114,7 +124,8 @@ function requestDiacritics(segments, pending) {
     function fail(message) {
         finished = true;
         for (const rollback of rollbacks.reverse()) rollback();
-        showToast(message);
+        if (onFail) onFail(message);
+        else showToast(message);
         try { port.disconnect(); } catch (e) { /* already gone */ }
     }
 
@@ -134,6 +145,7 @@ function requestDiacritics(segments, pending) {
         } else if (msg.type === 'done') {
             finished = true;
             port.disconnect();
+            if (onDone) onDone();
         } else if (msg.type === 'fatal') {
             console.error('Nekudot failed:', msg.reason);
             fail('Nekudot: adding nikud failed — the page was restored');
@@ -147,17 +159,34 @@ function requestDiacritics(segments, pending) {
     port.postMessage({type: 'diacritize', segments});
 }
 
-// The focused input/textarea, if it has a usable text selection.
-// (selectionStart throws for some input types, e.g. number/email.)
-function activeEditable() {
+// The focused input/textarea. By default it must hold a text selection
+// (adding nikud targets the selection); pass requireSelection=false for
+// operations on the whole field, e.g. Remove nikud after the selection
+// collapsed. (selectionStart throws for some input types, e.g. number.)
+function activeEditable(requireSelection = true) {
     const el = document.activeElement;
     if (!el || (el.tagName !== 'TEXTAREA' && el.tagName !== 'INPUT'))
         return null;
     try {
-        if (el.selectionStart != null && el.selectionStart !== el.selectionEnd)
+        if (el.selectionStart == null)
+            return null;
+        if (!requireSelection || el.selectionStart !== el.selectionEnd)
             return el;
     } catch (e) { /* unsupported input type */ }
     return null;
 }
 
-export {collectTextNodes, scopedTextNodes, showToast, requestDiacritics, getRegistry, activeEditable};
+// The whole-page flow, shared by the explicit menu entry (content_page.js)
+// and content.js's no-selection fallback.
+function runWholePage() {
+    const {pending, segments, alreadyDotted} = collectSegments(collectTextNodes(document.body), null);
+    if (segments.length === 0) {
+        showToast(alreadyDotted > 0
+            ? 'Nekudot: this page already has nikud'
+            : 'Nekudot: no Hebrew text found on this page');
+        return;
+    }
+    requestDiacritics(segments, pending);
+}
+
+export {collectTextNodes, scopedTextNodes, showToast, requestDiacritics, getRegistry, activeEditable, runWholePage};

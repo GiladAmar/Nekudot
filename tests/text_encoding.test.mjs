@@ -107,6 +107,18 @@ describe('remove_niqqud', () => {
         assert.equal(remove_niqqud('\u05E9\u05B8\u05C1\u05DC\u05D5\u05B9\u05DD'), '\u05E9\u05DC\u05D5\u05DD');
         assert.equal(remove_niqqud('\u05D1\u05BC\u05B0\u05E8\u05B5\u05D0\u05E9\u05B4\u05C1\u05D9\u05EA'), '\u05D1\u05E8\u05D0\u05E9\u05D9\u05EA');
     });
+    test('preserves Hebrew punctuation: maqaf, paseq, sof pasuq', () => {
+        // \u05BE maqaf, \u05C0 paseq, \u05C3 sof pasuq share the block with
+        // the marks but are punctuation and must survive stripping
+        const text = '\u05D1\u05D9\u05EA\u05BE\u05E1\u05E4\u05E8 \u05C0 \u05E1\u05D5\u05E3\u05C3';
+        assert.equal(remove_niqqud(text), text);
+    });
+
+    test('strips cantillation and meteg but keeps the letters', () => {
+        // \u0596 tipeha (cantillation), \u05BD meteg
+        assert.equal(remove_niqqud('\u05D0\u0596\u05D1\u05BD'), '\u05D0\u05D1');
+    });
+
     test('leaves unmarked text alone', () => {
         const text = '\u05E9\u05DC\u05D5\u05DD hello 123';
         assert.equal(remove_niqqud(text), text);
@@ -148,6 +160,13 @@ describe('end-to-end with the real model', () => {
     test('characters are preserved exactly, including newlines and tabs', async () => {
         const text = 'שורה ראשונה\nשורה שנייה\tסוף';
         const out = await diacritize(tf, model, text);
+        assert.equal(remove_niqqud(out), text);
+    });
+
+    test('maqaf survives the full pipeline verbatim', async () => {
+        const text = '\u05D1\u05D9\u05EA\u05BE\u05E1\u05E4\u05E8 \u05D7\u05D3\u05E9';
+        const out = await diacritize(tf, model, text);
+        assert.ok(out.includes('\u05BE'), 'maqaf must not be deleted from dotted text');
         assert.equal(remove_niqqud(out), text);
     });
 

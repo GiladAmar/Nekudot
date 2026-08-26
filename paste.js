@@ -1,6 +1,8 @@
 // The paste page: diacritize arbitrary pasted text. Works where DOM
 // rewriting can't (canvas-rendered apps like Google Docs, Word Online).
-// Uses the same port protocol as the content scripts.
+// Uses the shared port-protocol client from content_runtime with a custom
+// apply target, so there is exactly one implementation of the protocol.
+import {requestDiacritics} from './content_runtime.mjs';
 
 const input = document.getElementById('input');
 const output = document.getElementById('output');
@@ -17,31 +19,24 @@ run.addEventListener('click', () => {
     output.value = '';
     copy.disabled = true;
 
-    let finished = false;
-    const port = chrome.runtime.connect({name: 'nekudot'});
-    port.onMessage.addListener((msg) => {
-        if (msg.type === 'result') {
-            output.value = msg.text;
-        } else if (msg.type === 'done') {
-            finished = true;
+    const pending = new Map();
+    pending.set(0, {
+        apply(dotted) {
+            output.value = dotted;
+            return () => { output.value = ''; };
+        }
+    });
+    requestDiacritics([{id: 0, text}], pending, {
+        onDone() {
             status.textContent = '';
             run.disabled = false;
             copy.disabled = !output.value;
-            port.disconnect();
-        } else if (msg.type === 'fatal') {
-            finished = true;
-            status.textContent = 'Failed: ' + msg.reason;
+        },
+        onFail(message) {
+            status.textContent = message.replace(/^Nekudot: /, 'Failed: ');
             run.disabled = false;
-            port.disconnect();
-        }
+        },
     });
-    // Service worker death would otherwise leave the button disabled forever.
-    port.onDisconnect.addListener(() => {
-        if (finished) return;
-        status.textContent = 'Failed: connection lost — try again';
-        run.disabled = false;
-    });
-    port.postMessage({type: 'diacritize', segments: [{id: 0, text}]});
 });
 
 copy.addEventListener('click', async () => {

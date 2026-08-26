@@ -64,7 +64,9 @@ function collectSegments(nodes, range) {
             continue;
         }
         const id = segments.length;
-        pending.set(id, {node, prefix: seg.prefix, suffix: seg.suffix});
+        // `whole` snapshots the node's text at collection time so a result
+        // is never applied over text the page changed while the model ran
+        pending.set(id, {node, prefix: seg.prefix, suffix: seg.suffix, whole: node.textContent});
         segments.push({id, text: seg.middle});
     }
     return {pending, segments, alreadyDotted};

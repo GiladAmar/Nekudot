@@ -2,7 +2,7 @@
 // this file is injected only into frames that have a selection, or into
 // the top frame alone when no frame has one (whole-page fallback).
 import {nodeSegment, isMostlyDotted, collectSegments} from './content_lib.mjs';
-import {scopedTextNodes, requestDiacritics, getRegistry, activeEditable, showToast} from './content_runtime.mjs';
+import {scopedTextNodes, requestDiacritics, getRegistry, activeEditable, showToast, runWholePage} from './content_runtime.mjs';
 
 // Selection inside an <input>/<textarea>: splice the diacritized text into
 // the element's value (DOM walking can't reach it).
@@ -49,15 +49,16 @@ function setNekudot() {
     }
 
     const {nodes, range} = scopedTextNodes();
-    if (!range)
+    if (!range) {
         showToast('Nekudot: no selection — adding nikud to the whole page');
+        runWholePage();
+        return;
+    }
 
     const {pending, segments, alreadyDotted} = collectSegments(nodes, range);
     if (segments.length === 0) {
         if (alreadyDotted > 0)
             showToast('Nekudot: this text already has nikud');
-        else if (!range)
-            showToast('Nekudot: no Hebrew text found on this page');
         return;
     }
     requestDiacritics(segments, pending);

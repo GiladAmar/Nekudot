@@ -54,9 +54,14 @@ async function load_model() {
 let modelPromise = null;
 function getModel() {
     if (!modelPromise) {
-        modelPromise = load_model();
+        const attempt = load_model();
+        modelPromise = attempt;
+        // a transient load failure must not poison every later request
+        attempt.catch(() => {
+            if (modelPromise === attempt) modelPromise = null;
+        });
         // observability (e2e tests)
-        globalThis.__nekudotModelReady = modelPromise.then(() => true, () => false);
+        globalThis.__nekudotModelReady = attempt.then(() => true, () => false);
     }
     return modelPromise;
 }
@@ -131,7 +136,7 @@ async function invokeWholePage(tab) {
     getModel(); // prefetch
     try {
         await chrome.scripting.executeScript({
-            target: {tabId: tab.id},
+            target: {tabId: tab.id, allFrames: true},
             files: ['content_page.js'],
         });
     } catch (e) {

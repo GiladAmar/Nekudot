@@ -73,8 +73,13 @@ function can_niqqud(letter) {
     return ('אבגדהוזחטיכלמנסעפצקרשת' + 'ךן').includes(letter);
 }
 
+// Strip only MARKS (niqqud, dagesh, shin/sin dots, rafe, meteg,
+// cantillation) — NOT the punctuation code points that share the block:
+// maqaf \u05BE, paseq \u05C0, sof pasuq \u05C3, nun hafukha \u05C6.
+// A wider range silently deleted maqaf from every dotted text
+// (\u05D1\u05D9\u05EA\u05BE\u05E1\u05E4\u05E8 became one glued word).
 function remove_niqqud(text) {
-    return text.replace(/[\u0591-\u05C7]/g, '');
+    return text.replace(/[\u0591-\u05BD\u05BF\u05C1\u05C2\u05C4\u05C5\u05C7]/g, '');
 }
 
 // Insert predicted marks into undotted text. The per-character head classes
