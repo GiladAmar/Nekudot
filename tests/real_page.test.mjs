@@ -15,12 +15,12 @@ import * as tf from '@tensorflow/tfjs-core';
 import '@tensorflow/tfjs-backend-wasm';
 import {JSDOM} from 'jsdom';
 import {loadModelFromDisk} from '../scripts/model_loader.mjs';
+import {FIXTURES} from '../scripts/fixtures_list.mjs';
 import {nodeSegment} from '../content_lib.mjs';
 import {collectTextNodes} from '../content_runtime.mjs';
 import {remove_niqqud, diacritize_batch} from '../text_encoding.mjs';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
-const FIXTURES = ['ynet-home.html', 'hebrewnews-home.html'];
 const SEGMENTS_PER_CHUNK = 32; // mirrors background.js
 
 const NIQQUD_RE = /[ְ-ּ]/;
@@ -35,7 +35,7 @@ async function getModel() {
     return model;
 }
 
-for (const fixtureName of FIXTURES) {
+for (const {name: fixtureName} of FIXTURES) {
     const fixturePath = join(repoRoot, 'tests', 'fixtures', fixtureName);
 
     describe(`real page through the full pipeline: ${fixtureName}`,

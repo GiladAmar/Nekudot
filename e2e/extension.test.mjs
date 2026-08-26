@@ -15,11 +15,12 @@ import {tmpdir} from 'node:os';
 import {join, dirname, basename} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import puppeteer from 'puppeteer';
+import {FIXTURES as ALL_FIXTURES} from '../scripts/fixtures_list.mjs';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = join(repoRoot, 'dist');
-const ALL_FIXTURES = ['ynet-home.html', 'hebrewnews-home.html'];
-const FIXTURES = ALL_FIXTURES.filter(f => existsSync(join(repoRoot, 'tests', 'fixtures', f)));
+const FIXTURES = ALL_FIXTURES.map(f => f.name)
+    .filter(f => existsSync(join(repoRoot, 'tests', 'fixtures', f)));
 
 const MARKS = '\\u05B0-\\u05BC\\u05C1\\u05C2';
 
