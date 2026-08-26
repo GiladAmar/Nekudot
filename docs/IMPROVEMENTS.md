@@ -30,12 +30,12 @@ Implemented as a chain of stacked PRs, one theme at a time.
 
 ## 2. Speed
 
-- [ ] **Skip rows with no Hebrew letters** — the biggest single win. Most of a
+- [x] **Skip rows with no Hebrew letters** — the biggest single win. Most of a
   full-page selection (nav chrome, URLs, digits, Latin) cannot receive niqqud;
   predict only rows containing Hebrew tokens and default the rest.
-- [ ] **Async readback instead of three `arraySync()` stalls** in
+- [x] **Async readback instead of three `arraySync()` stalls** in
   `prediction_to_text`.
-- [ ] **Warm-up predict** after model load so the first click doesn't pay
+- [x] **Warm-up predict** after model load so the first click doesn't pay
   shader/kernel compilation.
 - [ ] **Slim the bundle.** Import `@tensorflow/tfjs-core` / `-layers` / one
   backend instead of the full 1.13 MB `@tensorflow/tfjs`.
