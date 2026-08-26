@@ -12,6 +12,12 @@ import {diacritize, diacritize_batch} from './text_encoding.mjs';
 // to the WebGL texture-upload failure class. WebGL remains the fallback.
 async function pick_backend() {
     setWasmPaths(chrome.runtime.getURL('wasm/'));
+    // MV3 service workers have no Worker API, but tfjs's feature detection
+    // still reports thread support and then crashes spawning workers
+    // ("ReferenceError: Worker is not defined"). Force the single-threaded
+    // SIMD binary where workers don't exist.
+    if (typeof Worker === 'undefined')
+        tf.env().set('WASM_HAS_MULTITHREAD_SUPPORT', false);
     for (const backend of ['wasm', 'webgl', 'cpu']) {
         try {
             if (await tf.setBackend(backend)) {
