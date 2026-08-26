@@ -1,6 +1,6 @@
 import {test, describe} from 'node:test';
 import assert from 'node:assert/strict';
-import {hasHebrew, isMostlyDotted, segmentRange, nodeSegment} from '../content_lib.mjs';
+import {hasHebrew, isMostlyDotted, segmentRange, nodeSegment, collectSegments} from '../content_lib.mjs';
 
 describe('hasHebrew', () => {
     test('detects Hebrew letters', () => {
@@ -25,9 +25,50 @@ describe('isMostlyDotted', () => {
         // one dotted word inside a long undotted sentence
         assert.equal(isMostlyDotted('שָׁלוֹם is one word inside טקסט ארוך בלי ניקוד בכלל כאן'), false);
     });
+    test('judged per word: a dotted short word next to bare words is processed', () => {
+        // per-letter ratios misfire here (1 mark / 4 letters); per-word is 1/2
+        assert.equal(isMostlyDotted('עַל זה'), false);
+        assert.equal(isMostlyDotted('בְּסֵדֶר גמור לגמרי בלי כלום'), false);
+    });
     test('no Hebrew means nothing to skip', () => {
         assert.equal(isMostlyDotted('hello world 123'), false);
         assert.equal(isMostlyDotted(''), false);
+    });
+});
+
+describe('collectSegments already-dotted skip', () => {
+    const node = (text) => ({textContent: text});
+
+    test('fully dotted nodes are skipped and counted', () => {
+        const nodes = [node('שָׁלוֹם עוֹלָם'), node('טקסט חדש בלי ניקוד')];
+        const {segments, alreadyDotted} = collectSegments(nodes, null);
+        assert.equal(alreadyDotted, 1);
+        assert.deepEqual(segments.map(s => s.text), ['טקסט חדש בלי ניקוד']);
+    });
+
+    test('the skip is judged on the selected part, not the whole node', () => {
+        // A node whose first half was dotted earlier: selecting the still
+        // undotted second half must be processed (regression: node-identity
+        // and whole-text skips blocked this forever).
+        const text = 'מִשְׁפָּט רִאשׁוֹן מְנֻקָּד. משפט שני רגיל.';
+        const secondStart = text.indexOf('משפט שני');
+        const n = node(text);
+        const range = {startContainer: n, endContainer: n,
+            startOffset: secondStart, endOffset: text.length};
+        const {segments, alreadyDotted} = collectSegments([n], range);
+        assert.equal(alreadyDotted, 0);
+        assert.deepEqual(segments.map(s => s.text), ['משפט שני רגיל.']);
+    });
+
+    test('selecting the already-dotted part of a node is skipped', () => {
+        const text = 'מִשְׁפָּט רִאשׁוֹן מְנֻקָּד. משפט שני רגיל.';
+        const dottedEnd = text.indexOf('.') + 1;
+        const n = node(text);
+        const range = {startContainer: n, endContainer: n,
+            startOffset: 0, endOffset: dottedEnd};
+        const {segments, alreadyDotted} = collectSegments([n], range);
+        assert.equal(alreadyDotted, 1);
+        assert.equal(segments.length, 0);
     });
 });
 

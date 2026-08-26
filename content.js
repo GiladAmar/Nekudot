@@ -1,7 +1,7 @@
 // Diacritize entry point. The background's frame probe enforces scope:
 // this file is injected only into frames that have a selection, or into
 // the top frame alone when no frame has one (whole-page mode).
-import {nodeSegment, isMostlyDotted} from './content_lib.mjs';
+import {nodeSegment, isMostlyDotted, collectSegments} from './content_lib.mjs';
 import {collectTextNodes, requestDiacritics, getRegistry, activeEditable, showToast} from './content_runtime.mjs';
 
 // Selection inside an <input>/<textarea>: splice the diacritized text into
@@ -10,7 +10,11 @@ function setNekudotEditable(el) {
     const start = el.selectionStart;
     const end = el.selectionEnd;
     const seg = nodeSegment(el.value, true, true, start, end);
-    if (!seg || isMostlyDotted(seg.middle)) return;
+    if (!seg) return;
+    if (isMostlyDotted(seg.middle)) {
+        showToast('Nekudot: this text already has nikud');
+        return;
+    }
 
     const pending = new Map();
     pending.set(0, {
@@ -23,32 +27,6 @@ function setNekudotEditable(el) {
         }
     });
     requestDiacritics([{id: 0, text: seg.middle}], pending);
-}
-
-function collectSegments(nodes, range) {
-    const registry = getRegistry();
-    const pending = new Map();
-    const segments = [];
-    let alreadyDotted = 0;
-    for (const node of nodes) {
-        // Incremental re-runs: pages that load more content as you scroll
-        // make a second Ctrl+A cover everything again. Skip what we already
-        // dotted (registry) and what came dotted, so a re-run only costs
-        // the newly loaded text.
-        if (registry.has(node) || isMostlyDotted(node.textContent)) {
-            alreadyDotted++;
-            continue;
-        }
-        const seg = range
-            ? nodeSegment(node.textContent, node === range.startContainer,
-                node === range.endContainer, range.startOffset, range.endOffset)
-            : nodeSegment(node.textContent, false, false, 0, 0);
-        if (!seg) continue;
-        const id = segments.length;
-        pending.set(id, {node, prefix: seg.prefix, suffix: seg.suffix});
-        segments.push({id, text: seg.middle});
-    }
-    return {pending, segments, alreadyDotted};
 }
 
 function setNekudot() {

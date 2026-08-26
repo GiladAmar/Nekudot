@@ -31,6 +31,55 @@ const missing = FIXTURES.length === 0 ? 'fixtures missing — run `npm run fixtu
 describe('extension end-to-end in Chrome', {skip: missing}, () => {
     let browser, server, sw, origin;
 
+    // -- shared Chrome-driving helpers -------------------------------------
+
+    async function openFixture(fixture) {
+        const page = await browser.newPage();
+        await page.setRequestInterception(true);
+        page.on('request', req =>
+            req.url().startsWith(origin) ? req.continue() : req.abort());
+        await page.goto(`${origin}/${fixture}`, {waitUntil: 'domcontentloaded', timeout: 30000});
+        return page;
+    }
+
+    const selectAll = (page) => page.evaluate(() => {
+        const range = document.createRange();
+        range.selectNodeContents(document.body);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+    });
+
+    // exactly what chrome.action.onClicked -> invoke() does
+    const invokeOn = (page) => sw.evaluate(async (url) => {
+        const [tab] = await chrome.tabs.query({url});
+        await chrome.scripting.executeScript({
+            target: {tabId: tab.id, allFrames: true},
+            files: ['content.js'],
+        });
+    }, page.url());
+
+    const markCount = (page) => page.evaluate((MARKS) =>
+        (document.body.innerText.match(new RegExp(`[${MARKS}]`, 'g')) || []).length, MARKS);
+
+    // Results stream in; wait until the mark count is stable for 2s.
+    async function waitForStable(page, baseline, t0) {
+        let last = baseline, stable = 0, first = 0;
+        const deadline = Date.now() + 180000;
+        while (Date.now() < deadline) {
+            await new Promise(r => setTimeout(r, 500));
+            const n = await markCount(page);
+            if (n > baseline && first === 0) first = performance.now() - t0;
+            stable = (n === last && n > baseline) ? stable + 1 : 0;
+            last = n;
+            if (stable >= 4) break;
+        }
+        // totalMs excludes the 2s stability confirmation window
+        return {count: last, firstMs: first, totalMs: performance.now() - t0 - 2000};
+    }
+
+    // -----------------------------------------------------------------------
+
     before(async () => {
         // Serve fixtures by name; block everything else so the snapshots'
         // external references don't hit the network.
@@ -86,52 +135,16 @@ describe('extension end-to-end in Chrome', {skip: missing}, () => {
 
     for (const fixture of FIXTURES) {
         test(`Ctrl+A + invoke diacritizes every Hebrew element type: ${fixture}`, async () => {
-            const page = await browser.newPage();
-            await page.setRequestInterception(true);
-            page.on('request', req =>
-                req.url().startsWith(origin) ? req.continue() : req.abort());
-            const url = `${origin}/${fixture}`;
-            await page.goto(url, {waitUntil: 'domcontentloaded', timeout: 30000});
+            const page = await openFixture(fixture);
+            await selectAll(page);
+            const baseline = await markCount(page);
 
-            // Simulate Ctrl+A
-            await page.evaluate(() => {
-                const range = document.createRange();
-                range.selectNodeContents(document.body);
-                const sel = window.getSelection();
-                sel.removeAllRanges();
-                sel.addRange(range);
-            });
-
-            const markCount = () => page.evaluate((MARKS) =>
-                (document.body.innerText.match(new RegExp(`[${MARKS}]`, 'g')) || []).length, MARKS);
-
-            const baseline = await markCount();
-
-            // Invoke exactly like chrome.action.onClicked -> invoke() does
             const t0 = performance.now();
-            await sw.evaluate(async (url) => {
-                const [tab] = await chrome.tabs.query({url});
-                await chrome.scripting.executeScript({
-                    target: {tabId: tab.id, allFrames: true},
-                    files: ['content.js'],
-                });
-            }, url);
-
-            // Results stream in; wait until the mark count is stable.
-            let last = baseline, stable = 0, first = 0;
-            const deadline = Date.now() + 180000;
-            while (Date.now() < deadline) {
-                await new Promise(r => setTimeout(r, 500));
-                const n = await markCount();
-                if (n > baseline && first === 0) first = performance.now() - t0;
-                stable = (n === last && n > baseline) ? stable + 1 : 0;
-                last = n;
-                if (stable >= 4) break;
-            }
-            const total = performance.now() - t0 - 2000; // minus stability wait
-            assert.ok(last > baseline, 'no niqqud appeared within the deadline');
-            console.log(`# ${fixture}: first marks after ${(first / 1000).toFixed(1)}s, ` +
-                `${last - baseline} marks added after ~${(total / 1000).toFixed(1)}s`);
+            await invokeOn(page);
+            const {count, firstMs, totalMs} = await waitForStable(page, baseline, t0);
+            assert.ok(count > baseline, 'no niqqud appeared within the deadline');
+            console.log(`# ${fixture}: first marks after ${(firstMs / 1000).toFixed(1)}s, ` +
+                `${count - baseline} marks added after ~${(totalMs / 1000).toFixed(1)}s`);
 
             // Inspect the final HTML: group Hebrew text nodes by element type.
             const report = await page.evaluate((MARKS) => {
@@ -181,57 +194,22 @@ describe('extension end-to-end in Chrome', {skip: missing}, () => {
 
     test('infinite-scroll re-run: only newly loaded content is processed', async () => {
         const fixture = FIXTURES.includes('hebrewnews-home.html') ? 'hebrewnews-home.html' : FIXTURES[0];
-        const page = await browser.newPage();
-        await page.setRequestInterception(true);
-        page.on('request', req =>
-            req.url().startsWith(origin) ? req.continue() : req.abort());
-        const url = `${origin}/${fixture}`;
-        await page.goto(url, {waitUntil: 'domcontentloaded', timeout: 30000});
-
-        const selectAll = () => page.evaluate(() => {
-            const range = document.createRange();
-            range.selectNodeContents(document.body);
-            const sel = window.getSelection();
-            sel.removeAllRanges();
-            sel.addRange(range);
-        });
-        const invoke = () => sw.evaluate(async (url) => {
-            const [tab] = await chrome.tabs.query({url});
-            await chrome.scripting.executeScript({
-                target: {tabId: tab.id, allFrames: true},
-                files: ['content.js'],
-            });
-        }, url);
-        const markCount = () => page.evaluate((MARKS) =>
-            (document.body.innerText.match(new RegExp(`[${MARKS}]`, 'g')) || []).length, MARKS);
-        const waitForStable = async (baseline) => {
-            let last = baseline, stable = 0;
-            const deadline = Date.now() + 120000;
-            while (Date.now() < deadline) {
-                await new Promise(r => setTimeout(r, 500));
-                const n = await markCount();
-                stable = (n === last && n > baseline) ? stable + 1 : 0;
-                last = n;
-                if (stable >= 4) break;
-            }
-            return last;
-        };
+        const page = await openFixture(fixture);
 
         // First full run.
-        await selectAll();
+        await selectAll(page);
         const t0 = performance.now();
-        await invoke();
-        const afterFirst = await waitForStable(0);
-        const firstMs = performance.now() - t0 - 2000;
-        assert.ok(afterFirst > 0);
+        await invokeOn(page);
+        const first = await waitForStable(page, 0, t0);
+        assert.ok(first.count > 0);
 
-        // Re-run with nothing new: everything is registry-skipped or already
-        // dotted, so the mark count must not change.
-        await selectAll();
-        await invoke();
+        // Re-run with nothing new: everything is already dotted, so the
+        // mark count must not change.
+        await selectAll(page);
+        await invokeOn(page);
         await new Promise(r => setTimeout(r, 4000));
-        const afterRerun = await markCount();
-        assert.equal(afterRerun, afterFirst,
+        const afterRerun = await markCount(page);
+        assert.equal(afterRerun, first.count,
             're-running on an already-dotted page must not re-process anything');
 
         // Simulate content loaded by scrolling, then Ctrl+A again.
@@ -242,20 +220,74 @@ describe('extension end-to-end in Chrome', {skip: missing}, () => {
                 'לשיפור התחבורה הציבורית בערים הגדולות ברחבי הארץ';
             document.body.appendChild(div);
         });
-        await selectAll();
+        await selectAll(page);
         const t1 = performance.now();
-        await invoke();
-        const afterNew = await waitForStable(afterRerun);
-        const incrementalMs = performance.now() - t1 - 2000;
+        await invokeOn(page);
+        const incremental = await waitForStable(page, afterRerun, t1);
 
         const newDivMarks = await page.evaluate((MARKS) =>
             (document.getElementById('scrolled-in').textContent
                 .match(new RegExp(`[${MARKS}]`, 'g')) || []).length, MARKS);
         assert.ok(newDivMarks > 10, 'the scrolled-in content must receive niqqud');
-        assert.equal(afterNew - afterFirst, newDivMarks,
+        assert.equal(incremental.count - first.count, newDivMarks,
             'a re-run must add marks only inside the newly loaded content');
-        console.log(`# incremental re-run: full page ${(firstMs / 1000).toFixed(1)}s, ` +
-            `new-content-only ${(incrementalMs / 1000).toFixed(1)}s (+${newDivMarks} marks)`);
+        assert.ok(incremental.totalMs < first.totalMs / 2,
+            `incremental run (${incremental.totalMs.toFixed(0)}ms) should be far faster ` +
+            `than the full run (${first.totalMs.toFixed(0)}ms)`);
+        console.log(`# incremental re-run: full page ${(first.totalMs / 1000).toFixed(1)}s, ` +
+            `new-content-only ${(incremental.totalMs / 1000).toFixed(1)}s (+${newDivMarks} marks)`);
+        await page.close();
+    });
+
+    test('partially-dotted node: the rest of the node can still be dotted', async () => {
+        // Regression for the registry-skip bug: dotting one sentence of a
+        // node must not block dotting the rest of that same node later.
+        const fixture = FIXTURES[0];
+        const page = await openFixture(fixture);
+        const nodeText = 'משפט ראשון לגמרי רגיל. משפט שני נפרד לחלוטין.';
+        await page.evaluate((nodeText) => {
+            const div = document.createElement('div');
+            div.id = 'two-sentences';
+            div.textContent = nodeText;
+            document.body.appendChild(div);
+        }, nodeText);
+
+        const firstLen = 'משפט ראשון לגמרי רגיל.'.length;
+        const selectPart = (from, to) => page.evaluate(({from, to}) => {
+            const textNode = document.getElementById('two-sentences').firstChild;
+            const range = document.createRange();
+            range.setStart(textNode, from);
+            range.setEnd(textNode, to);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+        }, {from, to});
+        const divMarks = () => page.evaluate((MARKS) =>
+            (document.getElementById('two-sentences').textContent
+                .match(new RegExp(`[${MARKS}]`, 'g')) || []).length, MARKS);
+
+        // Dot only the first sentence, polling the div directly.
+        await selectPart(0, firstLen);
+        await invokeOn(page);
+        let deadline = Date.now() + 60000;
+        while (Date.now() < deadline && (await divMarks()) === 0)
+            await new Promise(r => setTimeout(r, 300));
+        const afterFirstSentence = await divMarks();
+        assert.ok(afterFirstSentence > 0, 'first sentence must get niqqud');
+
+        // Now select the second (still undotted) sentence of the SAME node.
+        const div = await page.evaluate(() =>
+            document.getElementById('two-sentences').textContent);
+        const secondStart = div.indexOf('משפט שני');
+        assert.ok(secondStart > 0);
+        await selectPart(secondStart, div.length);
+        await invokeOn(page);
+        deadline = Date.now() + 60000;
+        while (Date.now() < deadline && (await divMarks()) <= afterFirstSentence)
+            await new Promise(r => setTimeout(r, 300));
+        const afterSecondSentence = await divMarks();
+        assert.ok(afterSecondSentence > afterFirstSentence,
+            'the undotted rest of a partially-dotted node must still be processed');
         await page.close();
     });
 });

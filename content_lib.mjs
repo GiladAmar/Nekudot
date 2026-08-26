@@ -7,18 +7,19 @@ function hasHebrew(text) {
     return HEBREW_RE.test(text);
 }
 
-// Text whose Hebrew letters already largely carry marks needs no work —
-// either this extension dotted it on a previous run (and the node was
-// since replaced by the page, losing its registry entry), or the content
-// came dotted. Fully dotted Hebrew has roughly one mark per letter;
-// half-dotted is a safe threshold that still processes lightly-marked
-// learning texts. Lets a re-run on an infinite-scroll page process only
-// the newly loaded content.
+// Text that is already dotted needs no work — this extension dotted it on
+// a previous run, or the content came dotted. Judged per word (a Hebrew
+// word counts as dotted when it carries at least one mark) so that a
+// per-letter ratio can't misfire on short words or dagesh-dense spans:
+// learning texts where most words are bare are still processed. Lets a
+// re-run on an infinite-scroll page process only the newly loaded content.
+// (To force re-dotting, use Remove nikud first.)
 function isMostlyDotted(text) {
-    const letters = (text.match(/[א-ת]/g) || []).length;
-    if (letters === 0) return false;
-    const marks = (text.match(/[\u05B0-\u05BC\u05C1\u05C2]/g) || []).length;
-    return marks >= letters * 0.5;
+    const words = (text.match(/[\u05D0-\u05EA\u05B0-\u05C2]+/g) || [])
+        .filter(w => (w.match(/[\u05D0-\u05EA]/g) || []).length >= 2);
+    if (words.length === 0) return false;
+    const dotted = words.filter(w => /[\u05B0-\u05BC\u05C1\u05C2]/.test(w)).length;
+    return dotted / words.length >= 0.75;
 }
 
 // The part of one text node covered by a Range. Ranges are always ordered
@@ -42,4 +43,31 @@ function nodeSegment(text, isStartContainer, isEndContainer, rangeStartOffset, r
     return {prefix: text.slice(0, start), middle, suffix: text.slice(end)};
 }
 
-export {hasHebrew, isMostlyDotted, segmentRange, nodeSegment};
+// Build the segment list for a set of text nodes (the selection's nodes, or
+// every node in whole-page mode). The already-dotted skip is judged on each
+// node's SELECTED text (seg.middle), never on node identity or full text:
+// a partially-dotted node can still have its other sentences dotted, and a
+// node whose text the page swapped after we dotted it (SPA re-render) is
+// re-processed because its new text carries no marks.
+function collectSegments(nodes, range) {
+    const pending = new Map();
+    const segments = [];
+    let alreadyDotted = 0;
+    for (const node of nodes) {
+        const seg = range
+            ? nodeSegment(node.textContent, node === range.startContainer,
+                node === range.endContainer, range.startOffset, range.endOffset)
+            : nodeSegment(node.textContent, false, false, 0, 0);
+        if (!seg) continue;
+        if (isMostlyDotted(seg.middle)) {
+            alreadyDotted++;
+            continue;
+        }
+        const id = segments.length;
+        pending.set(id, {node, prefix: seg.prefix, suffix: seg.suffix});
+        segments.push({id, text: seg.middle});
+    }
+    return {pending, segments, alreadyDotted};
+}
+
+export {hasHebrew, isMostlyDotted, segmentRange, nodeSegment, collectSegments};

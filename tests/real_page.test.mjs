@@ -16,7 +16,7 @@ import '@tensorflow/tfjs-backend-wasm';
 import {JSDOM} from 'jsdom';
 import {loadModelFromDisk} from '../scripts/model_loader.mjs';
 import {FIXTURES} from '../scripts/fixtures_list.mjs';
-import {nodeSegment} from '../content_lib.mjs';
+import {collectSegments} from '../content_lib.mjs';
 import {collectTextNodes} from '../content_runtime.mjs';
 import {remove_niqqud, diacritize_batch} from '../text_encoding.mjs';
 
@@ -50,22 +50,16 @@ for (const {name: fixtureName} of FIXTURES) {
             global.Node = dom.window.Node;
         });
 
-        function collectSegments(range = null) {
+        // the extension's exact segment collection (shared code, not a copy)
+        function pageSegments(range = null) {
             const root = range ? range.commonAncestorContainer : dom.window.document.body;
-            const segments = [];
-            for (const node of collectTextNodes(root, range)) {
-                const seg = range
-                    ? nodeSegment(node.textContent, node === range.startContainer,
-                        node === range.endContainer, range.startOffset, range.endOffset)
-                    : nodeSegment(node.textContent, false, false, 0, 0);
-                if (seg) segments.push(seg.middle);
-            }
-            return segments;
+            const nodes = collectTextNodes(root, range);
+            return collectSegments(nodes, range).segments.map(s => s.text);
         }
 
         test('whole-page mode: every segment survives and round-trips exactly', async () => {
             const m = await getModel();
-            const segments = collectSegments();
+            const segments = pageSegments();
             assert.ok(segments.length > 20, `expected a real page, got ${segments.length} segments`);
             const chars = segments.reduce((a, s) => a + s.length, 0);
 
@@ -98,8 +92,8 @@ for (const {name: fixtureName} of FIXTURES) {
                 t.skip('jsdom Range.intersectsNode unsupported');
                 return;
             }
-            const viaSelection = collectSegments(range);
-            const viaWholePage = collectSegments();
+            const viaSelection = pageSegments(range);
+            const viaWholePage = pageSegments();
             assert.deepEqual(viaSelection, viaWholePage,
                 'Ctrl+A over <body> must segment identically to whole-page mode');
         });
@@ -108,7 +102,7 @@ for (const {name: fixtureName} of FIXTURES) {
             const doc = dom.window.document;
             const scriptTexts = [...doc.querySelectorAll('script')]
                 .map(s => s.textContent.trim()).filter(s => s.length > 40);
-            const segments = new Set(collectSegments().map(s => s.trim()));
+            const segments = new Set(pageSegments().map(s => s.trim()));
             for (const s of scriptTexts)
                 assert.ok(!segments.has(s), 'script content must never be diacritized');
         });
