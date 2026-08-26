@@ -4,7 +4,7 @@ import {readFile} from 'node:fs/promises';
 import {join, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import * as tf from '@tensorflow/tfjs';
-import {normalize, split_to_rows, remove_niqqud, diacritize} from '../text_encoding.mjs';
+import {normalize, split_to_rows, remove_niqqud, diacritize, diacritize_batch} from '../text_encoding.mjs';
 
 const MAXLEN = 90;
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -132,5 +132,29 @@ describe('end-to-end with the real model', () => {
         const blob = Array(200).fill('הם חלק ממאמצי האגודה הלאומית לשמירת הטבע בישראל').join(' ');
         const out = diacritize(tf, model, blob);
         assert.equal(remove_niqqud(out), blob);
+    });
+
+    test('characters are preserved exactly, including newlines and tabs', () => {
+        const text = 'שורה ראשונה\nשורה שנייה\tסוף';
+        const out = diacritize(tf, model, text);
+        assert.equal(remove_niqqud(out), text);
+    });
+
+    test('diacritize_batch matches per-segment diacritize', () => {
+        const texts = [
+            'הם חלק ממאמצי האגודה הלאומית',
+            'כותרת ראשית: דבר מה קרה היום.',
+            'עוד פסקה עם טקסט עברי רגיל.',
+        ];
+        const batched = diacritize_batch(tf, model, texts);
+        const separate = texts.map(t => diacritize(tf, model, t));
+        assert.deepEqual(batched, separate);
+    });
+
+    test('no tensor leaks across calls', () => {
+        diacritize(tf, model, 'בדיקת זיכרון ראשונה');
+        const before = tf.memory().numTensors;
+        diacritize_batch(tf, model, ['בדיקת זיכרון שנייה', 'ועוד אחת']);
+        assert.equal(tf.memory().numTensors, before);
     });
 });
