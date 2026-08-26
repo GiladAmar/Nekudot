@@ -12,8 +12,9 @@ import {normalize, split_to_rows, remove_niqqud, diacritize, diacritize_batch} f
 const MAXLEN = 90;
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-await tf.setBackend('wasm');
+assert.ok(await tf.setBackend('wasm'), 'wasm backend must initialize — tests must not silently fall back to cpu');
 await tf.ready();
+assert.equal(tf.getBackend(), 'wasm');
 
 function encode(text) {
     return text.replace(/./gms, normalize);

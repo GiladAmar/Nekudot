@@ -28,7 +28,7 @@ const NIQQUD_RE = /[ְ-ּ]/;
 let model = null;
 async function getModel() {
     if (!model) {
-        await tf.setBackend('wasm');
+        assert.ok(await tf.setBackend('wasm'), 'wasm backend must initialize');
         await tf.ready();
         model = await loadModelFromDisk(join(repoRoot, 'model'));
     }

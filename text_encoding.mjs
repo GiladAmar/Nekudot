@@ -133,9 +133,9 @@ async function run_model(tf, model, rows) {
         const indices = kept.slice(start, start + ROWS_PER_PREDICT);
         const argmaxes = tf.tidy(() => {
             const input = tf.tensor2d(indices.map(i => rows[i]), [indices.length, MAXLEN], 'float32');
-            const heads = model.predict(input, {batchSize: 64});
+            const outputs = model.predict(input, {batchSize: 64}); // [niqqud, dagesh, sin]
             // functional API: modular tfjs-core does not register chained tensor ops
-            return heads.map(h => tf.argMax(h, -1));
+            return outputs.map(h => tf.argMax(h, -1));
         });
         // async readback: no dataSync() stall on the GPU pipeline
         const [niqqud, dagesh, sin] = await Promise.all(argmaxes.map(t => t.data()));

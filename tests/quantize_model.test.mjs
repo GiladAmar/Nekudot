@@ -12,7 +12,7 @@ import {diacritize, remove_niqqud} from '../text_encoding.mjs';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-await tf.setBackend('wasm');
+assert.ok(await tf.setBackend('wasm'), 'wasm backend must initialize');
 await tf.ready();
 
 // Reference float16 round-trip via DataView-free bit math.
