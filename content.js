@@ -66,7 +66,7 @@ function setNekudot() {
 
     const {pending, segments} = collectSegments(nodes, range);
     if (segments.length === 0) {
-        if (!range) showToast('לא נמצא טקסט בעברית בדף');
+        if (!range) showToast('Nekudot: no Hebrew text found on this page');
         return;
     }
     requestDiacritics(segments, pending);

@@ -36,19 +36,22 @@
 
 ### New
 
-- **Right-click menu**: "הוסף ניקוד" on a selection, "הוסף ניקוד לכל הדף"
-  anywhere, and "הסר ניקוד" to take it back.
+- **Right-click menu**: "Add nikud" on a selection, "Add nikud to the whole
+  page" anywhere, and "Remove nikud" to take it back.
 - **Whole-page mode**: click the icon with nothing selected and the entire
   page gets niqqud.
-- **Remove / undo**: "הסר ניקוד" restores the original text exactly —
+- **Remove / undo**: "Remove nikud" restores the original text exactly —
   including text that already had partial niqqud before.
 - **Keyboard shortcut**: Ctrl+Shift+Y (⌘+Shift+Y on Mac), remappable at
   chrome://extensions/shortcuts.
 - **Works in text boxes**: select text inside an input field, a comment box,
   or an editor like Gmail compose, and it gets niqqud in place.
-- **Paste page**: right-click the toolbar icon → "פתח דף ניקוד (הדבקה)" for a
+- **Paste page**: right-click the toolbar icon → "Open paste page" for a
   simple paste-and-copy page — useful in apps where the page can't be edited
   directly (Google Docs, Word Online).
+- **English-first interface**: menu items, buttons and messages are in
+  English (with Hebrew alongside where it helps) — the extension is for
+  people learning Hebrew, so the controls shouldn't require it.
 
 ### Privacy
 

@@ -86,24 +86,25 @@ chrome.action.onClicked.addListener(tab => invoke(tab, 'content.js'));
 
 chrome.runtime.onInstalled.addListener(() => {
     chrome.contextMenus.removeAll(() => {
+        // English-first labels: the audience is Hebrew learners.
         chrome.contextMenus.create({
             id: 'nekudot-selection',
-            title: 'הוסף ניקוד',
+            title: 'Add nikud (הוסף ניקוד)',
             contexts: ['selection'],
         });
         chrome.contextMenus.create({
             id: 'nekudot-page',
-            title: 'הוסף ניקוד לכל הדף',
+            title: 'Add nikud to the whole page',
             contexts: ['page'],
         });
         chrome.contextMenus.create({
             id: 'nekudot-remove',
-            title: 'הסר ניקוד',
+            title: 'Remove nikud (הסר ניקוד)',
             contexts: ['selection', 'page'],
         });
         chrome.contextMenus.create({
             id: 'nekudot-paste-page',
-            title: 'פתח דף ניקוד (הדבקה)',
+            title: 'Open paste page (works in Google Docs etc.)',
             contexts: ['action'],
         });
     });

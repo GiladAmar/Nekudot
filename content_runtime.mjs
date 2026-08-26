@@ -33,7 +33,6 @@ function collectTextNodes(root, range = null) {
 function showToast(message) {
     const toast = document.createElement('div');
     toast.textContent = message;
-    toast.setAttribute('dir', 'rtl');
     toast.style.cssText = 'position:fixed;top:16px;right:16px;z-index:2147483647;' +
         'background:#333;color:#fff;padding:10px 16px;border-radius:6px;' +
         'font:14px sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.35)';
@@ -78,7 +77,7 @@ function requestDiacritics(segments, pending) {
             port.disconnect();
         } else if (msg.type === 'fatal') {
             console.error('Nekudot failed:', msg.reason);
-            showToast('הוספת הניקוד נכשלה');
+            showToast('Nekudot: adding nikud failed');
             port.disconnect();
         }
     });

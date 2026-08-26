@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="he" dir="rtl">
+<html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>נקודות — ניקוד טקסט</title>
+    <title>Nekudot — Add Nikud to Text</title>
     <style>
         :root {
             color-scheme: light dark;
@@ -22,7 +22,8 @@
             color: var(--fg);
             font: 16px/1.6 sans-serif;
         }
-        h1 { font-size: 20px; margin: 0 0 16px; }
+        h1 { font-size: 20px; margin: 0 0 4px; }
+        .subtitle { margin: 0 0 16px; font-size: 14px; opacity: .75; }
         textarea {
             width: 100%;
             min-height: 160px;
@@ -51,15 +52,16 @@
     </style>
 </head>
 <body>
-<h1>ניקוד טקסט</h1>
-<textarea id="input" placeholder="הדביקו כאן טקסט בעברית..." autofocus></textarea>
+<h1>Add Nikud to Text (ניקוד)</h1>
+<p class="subtitle">Paste Hebrew text below — useful in apps that can't be edited in place, like Google Docs or Word Online.</p>
+<textarea id="input" dir="rtl" placeholder="Paste Hebrew text here..." autofocus></textarea>
 <div class="row">
-    <button id="run">נַקֵּד</button>
+    <button id="run">Add Nikud (נַקֵּד)</button>
     <span id="status"></span>
 </div>
-<textarea id="output" readonly placeholder="הטקסט המנוקד יופיע כאן"></textarea>
+<textarea id="output" dir="rtl" readonly placeholder="The text with nikud will appear here"></textarea>
 <div class="row">
-    <button id="copy" class="secondary" disabled>העתקה</button>
+    <button id="copy" class="secondary" disabled>Copy</button>
 </div>
 <script type="module" src="paste.js"></script>
 </body>

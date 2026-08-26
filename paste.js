@@ -13,7 +13,7 @@ run.addEventListener('click', () => {
     if (!text.trim()) return;
 
     run.disabled = true;
-    status.textContent = 'מנקד...';
+    status.textContent = 'Adding nikud...';
     output.value = '';
     copy.disabled = true;
 
@@ -27,7 +27,7 @@ run.addEventListener('click', () => {
             copy.disabled = !output.value;
             port.disconnect();
         } else if (msg.type === 'fatal') {
-            status.textContent = 'הניקוד נכשל: ' + msg.reason;
+            status.textContent = 'Failed: ' + msg.reason;
             run.disabled = false;
             port.disconnect();
         }
@@ -37,6 +37,6 @@ run.addEventListener('click', () => {
 
 copy.addEventListener('click', async () => {
     await navigator.clipboard.writeText(output.value);
-    status.textContent = 'הועתק!';
+    status.textContent = 'Copied!';
     setTimeout(() => { status.textContent = ''; }, 2000);
 });
