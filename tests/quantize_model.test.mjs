@@ -7,13 +7,10 @@ import '@tensorflow/tfjs-backend-wasm';
 import {io} from '@tensorflow/tfjs-core';
 import {loadLayersModel} from '@tensorflow/tfjs-layers';
 import {toHalf, quantizeToFloat16, readModelArtifacts} from '../scripts/quantize_model.mjs';
-import {loadModelFromDisk} from '../scripts/model_loader.mjs';
 import {diacritize, remove_niqqud} from '../text_encoding.mjs';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-assert.ok(await tf.setBackend('wasm'), 'wasm backend must initialize');
-await tf.ready();
 
 // Reference float16 round-trip via DataView-free bit math.
 function halfToFloat(h) {
@@ -57,6 +54,16 @@ describe('toHalf', () => {
         }
     });
 
+    test('subnormal ties round to nearest even (sticky bits computed before the shift)', () => {
+        const f32 = new Float32Array(1);
+        const u32 = new Uint32Array(f32.buffer);
+        const fromBits = (bits) => { u32[0] = bits; return f32[0]; };
+        // exact counterexamples from review: shifting before the sticky
+        // computation rounded these the wrong way by 1 ulp
+        assert.equal(toHalf(fromBits(0x33000577)), 0x0001);
+        assert.equal(toHalf(fromBits(0xb72c8004)), 0x80ad);
+    });
+
     test('rounds to nearest even', () => {
         // 1 + 2^-11 is exactly between 1 (0x3c00) and 1 + 2^-10 (0x3c01):
         // ties go to the even mantissa.
@@ -67,24 +74,27 @@ describe('toHalf', () => {
 });
 
 describe('quantized model', () => {
-    let f32model, f16model;
+    let f32model, f16model, srcBytes, quantizedBytes;
 
     before(async () => {
-        f32model = await loadModelFromDisk(join(repoRoot, 'model'));
+        assert.ok(await tf.setBackend('wasm'), 'wasm backend must initialize');
+        await tf.ready();
+        // one disk read serves both models and the size assertion
         const src = await readModelArtifacts(join(repoRoot, 'model'));
-        const q = quantizeToFloat16(src.modelJSON, src.weightData);
-        const weightSpecs = q.modelJSON.weightsManifest.flatMap(g => g.weights);
-        f16model = await loadLayersModel(io.fromMemory({
-            modelTopology: q.modelJSON.modelTopology,
-            weightSpecs,
-            weightData: q.weightData,
+        const fromMemory = (modelJSON, weightData) => loadLayersModel(io.fromMemory({
+            modelTopology: modelJSON.modelTopology,
+            weightSpecs: modelJSON.weightsManifest.flatMap(g => g.weights),
+            weightData,
         }));
+        f32model = await fromMemory(src.modelJSON, src.weightData);
+        const q = quantizeToFloat16(src.modelJSON, src.weightData);
+        f16model = await fromMemory(q.modelJSON, q.weightData);
+        srcBytes = src.weightData.byteLength;
+        quantizedBytes = q.weightData.byteLength;
     });
 
-    test('weights shrink to about half', async () => {
-        const src = await readModelArtifacts(join(repoRoot, 'model'));
-        const q = quantizeToFloat16(src.modelJSON, src.weightData);
-        const ratio = q.weightData.byteLength / src.weightData.byteLength;
+    test('weights shrink to about half', () => {
+        const ratio = quantizedBytes / srcBytes;
         assert.ok(ratio < 0.55, `expected ~0.5, got ${ratio.toFixed(3)}`);
     });
 

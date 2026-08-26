@@ -29,8 +29,11 @@ function toHalf(value) {
     if (e <= 0) { // subnormal half (or underflow to zero)
         if (e < -10)
             return sign;
-        const m = (frac | 0x800000) >>> (1 - e);
-        return sign | ((m >>> 13) + roundHalfEven(m, 13));
+        // round once on the full mantissa: shifting first would drop bits
+        // before the sticky computation and break nearest-even on ties
+        const m = frac | 0x800000;
+        const drop = 13 + (1 - e);
+        return sign | ((m >>> drop) + roundHalfEven(m, drop));
     }
 
     // mantissa rounding may carry into the exponent bits — that is the
@@ -81,6 +84,9 @@ function quantizeToFloat16(modelJSON, weightData) {
         }
     }
 
+    if (offset !== bytes.length)
+        throw new Error(`weight data length mismatch: specs describe ${offset} bytes, data has ${bytes.length}`);
+
     const out = new Uint8Array(outBytes);
     let outOffset = 0;
     for (const part of parts) {
@@ -111,7 +117,9 @@ async function readModelArtifacts(dir) {
 export {toHalf, quantizeToFloat16, readModelArtifacts};
 
 // CLI
-if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split('/').pop())) {
+import {fileURLToPath} from 'node:url';
+import {resolve} from 'node:path';
+if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
     const [srcDir, dstDir] = process.argv.slice(2);
     if (!srcDir || !dstDir) {
         console.error('usage: node scripts/quantize_model.mjs <srcDir> <dstDir>');
@@ -121,6 +129,9 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split('/').pop()
     const {modelJSON, weightData} = quantizeToFloat16(src.modelJSON, src.weightData);
     await mkdir(dstDir, {recursive: true});
     await writeFile(join(dstDir, 'model.json'), JSON.stringify(modelJSON));
-    await writeFile(join(dstDir, 'group1-shard1of1.bin'), Buffer.from(weightData));
+    // the shard name comes from the manifest we just wrote — never let the
+    // referenced path and the written file drift apart
+    const [shardName] = modelJSON.weightsManifest[0].paths;
+    await writeFile(join(dstDir, shardName), Buffer.from(weightData));
     console.log(`quantized ${srcDir} (${src.weightData.byteLength} B) -> ${dstDir} (${weightData.byteLength} B)`);
 }
