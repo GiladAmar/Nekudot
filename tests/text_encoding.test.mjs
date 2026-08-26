@@ -109,13 +109,13 @@ describe('end-to-end with the real model', () => {
         }));
     });
 
-    test('short sentence gets niqqud', () => {
-        const out = diacritize(tf, model, 'הם חלק ממאמצי האגודה הלאומית');
+    test('short sentence gets niqqud', async () => {
+        const out = await diacritize(tf, model, 'הם חלק ממאמצי האגודה הלאומית');
         assert.ok(/[ְ-ּ]/.test(out), 'output should contain niqqud marks');
         assert.equal(remove_niqqud(out), 'הם חלק ממאמצי האגודה הלאומית');
     });
 
-    test('select-all-like page text with giant unbroken tokens does not crash', () => {
+    test('select-all-like page text with giant unbroken tokens does not crash', async () => {
         const blob = [
             Array(50).fill('חדשות').join(' '),
             'https://www.ynet.co.il/home/0,7340,L-8,00.html',
@@ -123,38 +123,60 @@ describe('end-to-end with the real model', () => {
             'כותרת ראשית: דבר מה קרה היום בבוקר.',
             'עוד פסקה עם טקסט עברי רגיל שאמור לקבל ניקוד תקין.',
         ].join(' ');
-        const out = diacritize(tf, model, blob);
+        const out = await diacritize(tf, model, blob);
         // Structure is preserved: stripping the added niqqud returns the input.
         assert.equal(remove_niqqud(out), remove_niqqud(blob));
     });
 
-    test('large multi-batch input (forces predict batching)', () => {
+    test('large multi-batch input (forces predict batching)', async () => {
         const blob = Array(200).fill('הם חלק ממאמצי האגודה הלאומית לשמירת הטבע בישראל').join(' ');
-        const out = diacritize(tf, model, blob);
+        const out = await diacritize(tf, model, blob);
         assert.equal(remove_niqqud(out), blob);
     });
 
-    test('characters are preserved exactly, including newlines and tabs', () => {
+    test('characters are preserved exactly, including newlines and tabs', async () => {
         const text = 'שורה ראשונה\nשורה שנייה\tסוף';
-        const out = diacritize(tf, model, text);
+        const out = await diacritize(tf, model, text);
         assert.equal(remove_niqqud(out), text);
     });
 
-    test('diacritize_batch matches per-segment diacritize', () => {
+    test('diacritize_batch matches per-segment diacritize', async () => {
         const texts = [
             'הם חלק ממאמצי האגודה הלאומית',
             'כותרת ראשית: דבר מה קרה היום.',
             'עוד פסקה עם טקסט עברי רגיל.',
         ];
-        const batched = diacritize_batch(tf, model, texts);
-        const separate = texts.map(t => diacritize(tf, model, t));
+        const batched = await diacritize_batch(tf, model, texts);
+        const separate = [];
+        for (const t of texts)
+            separate.push(await diacritize(tf, model, t));
         assert.deepEqual(batched, separate);
     });
 
-    test('no tensor leaks across calls', () => {
-        diacritize(tf, model, 'בדיקת זיכרון ראשונה');
+    test('no tensor leaks across calls', async () => {
+        await diacritize(tf, model, 'בדיקת זיכרון ראשונה');
         const before = tf.memory().numTensors;
-        diacritize_batch(tf, model, ['בדיקת זיכרון שנייה', 'ועוד אחת']);
+        await diacritize_batch(tf, model, ['בדיקת זיכרון שנייה', 'ועוד אחת']);
         assert.equal(tf.memory().numTensors, before);
+    });
+    test('rows without Hebrew are skipped: Latin-only text is returned unchanged', async () => {
+        const latin = ('lorem ipsum dolor sit amet, consectetur adipiscing elit. '.repeat(50)).trim();
+        const t0 = performance.now();
+        const out = await diacritize(tf, model, latin);
+        const ms = performance.now() - t0;
+        assert.equal(out, latin);
+        console.log(`# latin-only blob (${latin.length} chars): ${ms.toFixed(0)}ms`);
+    });
+
+    test('Hebrew embedded in a mostly-Latin page still gets niqqud', async () => {
+        const blob = 'lorem ipsum dolor sit amet. '.repeat(100) +
+            'הם חלק ממאמצי האגודה הלאומית ' +
+            'consectetur adipiscing elit. '.repeat(100);
+        const t0 = performance.now();
+        const out = await diacritize(tf, model, blob);
+        const ms = performance.now() - t0;
+        assert.equal(remove_niqqud(out), blob);
+        assert.ok(/[\u05B0-\u05BC]/.test(out), 'the Hebrew part should still receive niqqud');
+        console.log(`# mostly-latin blob (${blob.length} chars): ${ms.toFixed(0)}ms`);
     });
 });

@@ -82,18 +82,48 @@ function encode_text(text) {
     return {undotted, rows};
 }
 
+// Only rows containing a Hebrew letter can receive marks; the rest of a
+// select-all-sized input (nav chrome, URLs, Latin text) is skipped entirely.
+const HEBREW_TOKEN_MIN = ALL_TOKENS.indexOf(HEBREW_LETTERS[0]);
+
+// Upper bound on rows per predict call, so one giant segment doesn't hold
+// the whole intermediate activation set alive at once.
+const ROWS_PER_PREDICT = 512;
+
 // Run the model over encoded rows and return per-token argmax classes for
 // the three heads as plain typed arrays (length rows.length * MAXLEN each).
-function run_model(tf, model, rows) {
-    return tf.tidy(() => {
-        const input = tf.tensor2d(rows, [rows.length, MAXLEN], 'float32');
-        const [niqqud, dagesh, sin] = model.predict(input, {batchSize: 64});
-        return {
-            niqqud: niqqud.argMax(-1).dataSync(),
-            dagesh: dagesh.argMax(-1).dataSync(),
-            sin: sin.argMax(-1).dataSync(),
-        };
-    });
+// Rows without Hebrew keep class 0 (no marks) and are never predicted.
+async function run_model(tf, model, rows) {
+    const heads = {
+        niqqud: new Int32Array(rows.length * MAXLEN),
+        dagesh: new Int32Array(rows.length * MAXLEN),
+        sin: new Int32Array(rows.length * MAXLEN),
+    };
+
+    const kept = [];
+    for (let i = 0; i < rows.length; i++)
+        if (rows[i].some(t => t >= HEBREW_TOKEN_MIN))
+            kept.push(i);
+
+    for (let start = 0; start < kept.length; start += ROWS_PER_PREDICT) {
+        const indices = kept.slice(start, start + ROWS_PER_PREDICT);
+        const argmaxes = tf.tidy(() => {
+            const input = tf.tensor2d(indices.map(i => rows[i]), [indices.length, MAXLEN], 'float32');
+            const [niqqud, dagesh, sin] = model.predict(input, {batchSize: 64});
+            return [niqqud.argMax(-1), dagesh.argMax(-1), sin.argMax(-1)];
+        });
+        // async readback: no dataSync() stall on the GPU pipeline
+        const [niqqud, dagesh, sin] = await Promise.all(argmaxes.map(t => t.data()));
+        argmaxes.forEach(t => t.dispose());
+        for (let j = 0; j < indices.length; j++) {
+            const dst = indices[j] * MAXLEN;
+            const src = j * MAXLEN;
+            heads.niqqud.set(niqqud.subarray(src, src + MAXLEN), dst);
+            heads.dagesh.set(dagesh.subarray(src, src + MAXLEN), dst);
+            heads.sin.set(sin.subarray(src, src + MAXLEN), dst);
+        }
+    }
+    return heads;
 }
 
 // Turn one segment's slice of the model output back into dotted text.
@@ -129,25 +159,25 @@ function decode(flat_input, heads, undotted_text, offset) {
     return output;
 }
 
-// Diacritize several independent text segments with a single model.predict
-// call. Returns one dotted string per input segment, in order.
-function diacritize_batch(tf, model, texts) {
+// Diacritize several independent text segments, batching their rows into
+// shared predict calls. Returns one dotted string per input segment, in order.
+async function diacritize_batch(tf, model, texts) {
     const encoded = texts.map(encode_text);
     const allRows = encoded.flatMap(e => e.rows);
-    const heads = run_model(tf, model, allRows);
+    const heads = await run_model(tf, model, allRows);
 
     const out = [];
     let offset = 0;
     for (const e of encoded) {
-        const flat = [].concat(...e.rows);
+        const flat = e.rows.flat();
         out.push(decode(flat, heads, e.undotted, offset));
         offset += flat.length;
     }
     return out;
 }
 
-function diacritize(tf, model, text) {
-    return diacritize_batch(tf, model, [text])[0];
+async function diacritize(tf, model, text) {
+    return (await diacritize_batch(tf, model, [text]))[0];
 }
 
 export {

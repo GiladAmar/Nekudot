@@ -1,5 +1,5 @@
 import * as tf from '@tensorflow/tfjs';
-import {diacritize_batch} from './text_encoding.mjs';
+import {diacritize, diacritize_batch} from './text_encoding.mjs';
 
 // Segments are processed in chunks: each chunk is one model.predict call,
 // results stream back per segment, and yielding between chunks keeps the
@@ -8,6 +8,9 @@ const SEGMENTS_PER_CHUNK = 32;
 
 async function load_model() {
     const model = await tf.loadLayersModel(chrome.runtime.getURL("model/model.json"));
+    // Warm-up: the first predict compiles kernels/shaders; pay that cost at
+    // load time instead of on the user's first click.
+    await diacritize(tf, model, 'א');
     return model;
 }
 
@@ -44,7 +47,7 @@ async function handleRequest(port, segments) {
     try {
         for (let i = 0; i < segments.length; i += SEGMENTS_PER_CHUNK) {
             const chunk = segments.slice(i, i + SEGMENTS_PER_CHUNK);
-            const results = diacritize_batch(tf, m, chunk.map(s => s.text));
+            const results = await diacritize_batch(tf, m, chunk.map(s => s.text));
             for (let j = 0; j < chunk.length; j++) {
                 if (!post(port, {type: 'result', id: chunk[j].id, text: results[j]}))
                     return;
