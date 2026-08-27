@@ -206,6 +206,19 @@ function activeEditable(requireSelection = true) {
     return null;
 }
 
+// Write an input/textarea value the way frameworks can observe: through the
+// native value setter (bypassing React/Vue's wrapped accessor) followed by a
+// bubbling 'input' event. A bare `el.value = ...` leaves framework state
+// holding the old string, so the next re-render reverts the field or the
+// form submits the un-diacritized value.
+function setEditableValue(el, value) {
+    const proto = el.tagName === 'TEXTAREA'
+        ? window.HTMLTextAreaElement.prototype
+        : window.HTMLInputElement.prototype;
+    Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, value);
+    el.dispatchEvent(new Event('input', {bubbles: true}));
+}
+
 // The whole-page flow, shared by the explicit menu entry (content_page.js)
 // and content.js's no-selection fallback.
 function runWholePage() {
@@ -226,5 +239,5 @@ function runWholePage() {
 
 export {
     collectTextNodes, scopedTextNodes, showToast, requestDiacritics,
-    getRegistry, applyWithRegistry, activeEditable, runWholePage,
+    getRegistry, applyWithRegistry, activeEditable, setEditableValue, runWholePage,
 };

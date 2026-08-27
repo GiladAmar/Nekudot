@@ -2,7 +2,7 @@
 // this file is injected only into frames that have a selection, or into
 // the top frame alone when no frame has one (whole-page fallback).
 import {nodeSegment, isMostlyDotted, collectSegments} from './content_lib.mjs';
-import {scopedTextNodes, requestDiacritics, applyWithRegistry, activeEditable, showToast, runWholePage} from './content_runtime.mjs';
+import {scopedTextNodes, requestDiacritics, applyWithRegistry, activeEditable, setEditableValue, showToast, runWholePage} from './content_runtime.mjs';
 
 // Selection inside an <input>/<textarea>: splice the diacritized text into
 // the element's value (DOM walking can't reach it).
@@ -23,7 +23,7 @@ function setNekudotEditable(el) {
             const rollback = applyWithRegistry(
                 el,
                 () => el.value,
-                v => { el.value = v; },
+                v => setEditableValue(el, v),
                 valueAtRequest,
                 seg.prefix + text + seg.suffix,
             );
