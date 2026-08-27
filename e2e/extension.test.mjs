@@ -138,6 +138,12 @@ describe('extension end-to-end in Chrome', {skip: missing}, () => {
             const page = await openFixture(fixture);
             await selectAll(page);
             const baseline = await markCount(page);
+            // pages can ship marks inside their own script JSON (a vocalized
+            // quote in an article payload) — assert we don't ADD any there
+            const scriptMarks = () => page.evaluate((MARKS) =>
+                [...document.querySelectorAll('script,style')].reduce((n, el) =>
+                    n + (el.textContent.match(new RegExp(`[${MARKS}]`, 'g')) || []).length, 0), MARKS);
+            const scriptMarksBefore = await scriptMarks();
 
             const t0 = performance.now();
             await invokeOn(page);
@@ -179,10 +185,8 @@ describe('extension end-to-end in Chrome', {skip: missing}, () => {
                 `Hebrew text nodes (>=2 niqqud-capable chars) left undotted: ${JSON.stringify(report.violations.slice(0, 5))}`);
 
             // script/style content must stay untouched
-            const scriptMarks = await page.evaluate((MARKS) =>
-                [...document.querySelectorAll('script,style')].some(el =>
-                    new RegExp(`[${MARKS}]`).test(el.textContent)), MARKS);
-            assert.equal(scriptMarks, false, 'script/style content must never be diacritized');
+            assert.equal(await scriptMarks(), scriptMarksBefore,
+                'script/style content must never be diacritized');
 
             // Save the dotted page for inspection.
             const out = join(process.env.E2E_SNAPSHOT_DIR || tmpdir(), `nekudot-e2e-${fixture}`);
