@@ -5,7 +5,7 @@
 //
 // Fixtures are gitignored (third-party content); fetch them with
 // `npm run fixtures`. Tests skip cleanly when a fixture is absent.
-import {test, describe, before} from 'node:test';
+import {test, describe, before, after} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {existsSync} from 'node:fs';
@@ -48,6 +48,15 @@ for (const {name: fixtureName} of FIXTURES) {
             global.document = dom.window.document;
             global.NodeFilter = dom.window.NodeFilter;
             global.Node = dom.window.Node;
+        });
+
+        // These globals are shared state: without teardown, running suites
+        // concurrently would walk one fixture's DOM while segmenting another.
+        after(() => {
+            delete global.document;
+            delete global.NodeFilter;
+            delete global.Node;
+            dom.window.close();
         });
 
         // the extension's exact segment collection (shared code, not a copy)

@@ -43,7 +43,12 @@ function looksLikeRealPage(html) {
 for (const {name, url} of FIXTURES) {
     let html = null;
     try {
-        const res = await fetch(url, {headers: {'user-agent': UA}});
+        // bot-protection tarpits accept the connection and then stall; without
+        // a timeout `npm run fixtures` would hang the whole CI job
+        const res = await fetch(url, {
+            headers: {'user-agent': UA},
+            signal: AbortSignal.timeout(30000),
+        });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         html = await res.text();
         if (!looksLikeRealPage(html)) throw new Error('looks like a block page');
