@@ -46,8 +46,9 @@
   page gets niqqud.
 - **Remove / undo**: "Remove nikud" restores the original text exactly —
   including text that already had partial niqqud before.
-- **Keyboard shortcut**: Ctrl+Shift+Y (⌘+Shift+Y on Mac), remappable at
-  chrome://extensions/shortcuts.
+- **Keyboard shortcut**: Alt+Shift+N (⌥+Shift+N on Mac), remappable at
+  chrome://extensions/shortcuts. (⌘+Shift+Y was avoided — macOS reserves
+  it for Sticky Notes.)
 - **Works in text boxes**: select text inside an input field, a comment box,
   or an editor like Gmail compose, and it gets niqqud in place.
 - **Paste page**: right-click the toolbar icon → "Open paste page" for a

@@ -18,8 +18,7 @@
   "commands": {
     "add-nekudot": {
       "suggested_key": {
-        "default": "Ctrl+Shift+Y",
-        "mac": "Command+Shift+Y"
+        "default": "Alt+Shift+N"
       },
       "description": "Add nekudot to the selection (or the whole page)"
     }
