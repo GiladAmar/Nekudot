@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <title>דף בדיקה — Nekudot regression fixture</title>
+    <!--
+      Committed, static test page. Every construct here reproduces a real
+      failure this extension hit on live news sites, so the suite is
+      deterministic and needs no network. Live-site fixtures are optional
+      and gitignored — fetch them with `npm run fixtures` to test against
+      today's markup as well.
+    -->
+    <style>
+        body { font-family: sans-serif; }
+        .hidden-menu { display: none; }
+    </style>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "NewsArticle",
+      "headline": "כותרת בתוך נתונים מובנים שאסור לגעת בה",
+      "description": "טקסט עברי בתוך תגית סקריפט. הוא לא אמור לקבל ניקוד לעולם."
+    }
+    </script>
+    <script>
+        // A page's own payload may already contain vocalised Hebrew. The
+        // suite must not count these as marks the extension added.
+        window.__payload = {quote: "שָׁלוֹם עוֹלָם", note: "מֻנָּח מְנֻקָּד"};
+    </script>
+</head>
+<body>
+
+<!-- Navigation chrome: short words in links and spans, the bulk of a real
+     homepage's Hebrew text nodes. -->
+<nav>
+    <a href="#a">חדשות</a>
+    <a href="#b">כלכלה</a>
+    <a href="#c">ספורט</a>
+    <a href="#d">תרבות</a>
+    <a href="#e">בריאות</a>
+    <a href="#f">מזג האוויר</a>
+    <span>עדכון אחרון</span>
+    <span>לפני שעה</span>
+    <button>הרשמה</button>
+    <button>כניסה</button>
+</nav>
+
+<!-- Non-breaking spaces between words: normalize() used to map these to a
+     foreign-character token, gluing a whole line into one giant word and
+     crashing the WebGL backend on select-all. -->
+<p id="nbsp-line">הממשלה אישרה היום תוכנית חדשה לשיפור התחבורה הציבורית</p>
+
+<!-- A single token far longer than one model row: the original
+     "offset is out of bounds" trigger. -->
+<div id="giant-token">ynetחדשותכלכלהספורטתרבותדיגיטלבריאותוכושרצרכנותנדלןחופשקניוןדעותקריירהיהדותאוכללימודיםאסטרולוגיהמזגאווירארכיוןמנויים</div>
+
+<!-- Maqaf and other Hebrew punctuation that shares a Unicode block with the
+     vowel marks: stripping too wide a range deleted these and glued words. -->
+<p id="punctuation">התלמידים הגיעו לבית־ספר חדש בשכונה ׀ והמורים קיבלו אותם בברכה׃</p>
+
+<!-- Text that already carries its own vocalisation: must be recognised as
+     dotted and left alone, and never stripped by Remove nikud. -->
+<blockquote id="already-dotted">בְּרֵאשִׁית בָּרָא אֱלֹהִים אֵת הַשָּׁמַיִם וְאֵת הָאָרֶץ</blockquote>
+
+<!-- Mixed Latin, digits, URLs and punctuation around Hebrew: these rows
+     carry no Hebrew and must be skipped by the model entirely. -->
+<p id="mixed">Read more at https://example.com/news/0,7340,L-8,00.html — updated 14:35, 27 August 2026.</p>
+<p id="mixed-hebrew">הכתבה המלאה פורסמה אתמול בשעה 18:00 באתר, וכללה נתונים על 1,250 משתתפים.</p>
+
+<article>
+    <h1>כותרת ראשית של הכתבה המרכזית בעמוד</h1>
+    <h2>כותרת משנה המסבירה את עיקרי הדברים</h2>
+    <p>שרי הממשלה התכנסו הבוקר לדיון ארוך על תקציב החינוך לשנה הבאה, ובסופו הוחלט להגדיל את ההשקעה בבתי הספר היסודיים ברחבי הארץ.</p>
+    <p>לדברי הגורמים שנכחו בישיבה, ההחלטה התקבלה פה אחד לאחר שהוצגו נתונים על מספר התלמידים בכל כיתה ועל המחסור במורים במקצועות המדעים.</p>
+    <p>ראש העיר הודיע כי תוכנית הבנייה החדשה בשכונות הדרום תצא לדרך כבר בחודש הבא, ותכלול גם גני ילדים ומגרשי משחקים.</p>
+    <h3>תגובות מן השטח</h3>
+    <p>ההורים בירכו על ההחלטה אך ביקשו לוודא שהתקציב אכן יגיע לכיתות עצמן ולא יישאר במשרדים.</p>
+    <ul>
+        <li>הוחלט להוסיף מאות משרות הוראה חדשות</li>
+        <li>המחסור החמור ביותר נרשם במקצועות המתמטיקה והפיזיקה</li>
+        <li>התוכנית תיבחן מחדש בתום שנת הלימודים הקרובה</li>
+    </ul>
+    <p><strong>עדכון:</strong> הודעה רשמית תפורסם בהמשך השבוע.</p>
+    <small>כל הזכויות שמורות לדף הבדיקה הזה בלבד</small>
+</article>
+
+<article>
+    <h2>מזג האוויר צפוי להשתנות לקראת סוף השבוע</h2>
+    <p>הטמפרטורות ירדו בהדרגה ברוב אזורי הארץ, ובאזור ההר תיתכן ירידת גשמים קלה בשעות הערב המאוחרות.</p>
+    <p>הרשויות קראו לנהגים להאט את הנסיעה בכבישים הרטובים ולשמור מרחק בטוח מן הרכב שלפניהם.</p>
+    <table>
+        <tr><td>ירושלים</td><td>22</td></tr>
+        <tr><td>תל אביב</td><td>27</td></tr>
+        <tr><td>חיפה</td><td>25</td></tr>
+        <tr><td>באר שבע</td><td>31</td></tr>
+    </table>
+    <address>מערכת דף הבדיקה</address>
+</article>
+
+<article>
+    <h2>קבוצת הכדורגל סיימה את העונה במקום השני</h2>
+    <p>השחקנים סיכמו את המשחק האחרון בניצחון ברור, והקהל ליווה אותם במחיאות כפיים ארוכות עד לשריקת הסיום.</p>
+    <p>המאמן אמר בסיום כי הקבוצה למדה הרבה מן העונה הזאת, וכי ההכנות לעונה הבאה יתחילו כבר בשבועות הקרובים.</p>
+</article>
+
+<!-- Hidden subtree: rendered text APIs cannot see this, so a stability
+     check based on innerText would miss results landing here. -->
+<div class="hidden-menu">
+    <span>ארכיון הכתבות</span>
+    <span>צור קשר עם המערכת</span>
+    <span>תנאי שימוש ומדיניות פרטיות</span>
+</div>
+
+<!-- Form controls: rewriting these text nodes changes what the form
+     submits, so they must be excluded from whole-page mode. -->
+<form>
+    <label for="city">בחרו עיר</label>
+    <select id="city">
+        <option>ירושלים</option>
+        <option>תל אביב</option>
+        <option>חיפה</option>
+    </select>
+    <textarea id="pristine">טקסט ברירת מחדל שאסור לשנות</textarea>
+    <input type="text" id="typed" value="שדה קלט רגיל">
+</form>
+
+<!-- Simple editable region (not a rich editor with its own model). -->
+<div id="composer" contenteditable="true">אפשר לערוך כאן טקסט עברי רגיל</div>
+
+</body>
+</html>

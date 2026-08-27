@@ -3,5 +3,5 @@
 dist
 node_modules
 .parcel-cache
-tests/fixtures
+tests/fixtures/*
 !tests/fixtures/regression-page.html
