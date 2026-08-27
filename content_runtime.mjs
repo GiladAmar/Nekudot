@@ -132,7 +132,6 @@ function applyWithRegistry(target, read, write, snapshot, newText) {
 function requestDiacritics(segments, pending, {onDone, onFail} = {}) {
     if (segments.length === 0) return;
 
-    const registry = getRegistry();
     const rollbacks = [];
     let finished = false;
 
@@ -142,7 +141,16 @@ function requestDiacritics(segments, pending, {onDone, onFail} = {}) {
         const rollback = applyWithRegistry(
             node,
             () => node.textContent,
-            v => { node.textContent = v; },
+            v => {
+                node.textContent = v;
+                // Inside a contenteditable, tell the editor its content
+                // changed. Simple editors pick this up; editors that keep
+                // their own document model (Lexical, Quill, ProseMirror)
+                // may still re-render from that model and drop the marks.
+                const host = node.parentElement && node.parentElement.closest('[contenteditable]');
+                if (host)
+                    host.dispatchEvent(new Event('input', {bubbles: true}));
+            },
             entry.whole,
             entry.prefix + text + entry.suffix,
         );

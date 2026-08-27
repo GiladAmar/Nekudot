@@ -189,6 +189,15 @@ describe('end-to-end with the real model', () => {
         }
     });
 
+    test('one huge segment (paste-page case) round-trips exactly', async () => {
+        // The paste page sends a whole textarea as a single segment, so the
+        // per-request accumulators must stay aligned at scale.
+        const text = Array(400).fill('\u05D4\u05DD \u05D7\u05DC\u05E7 \u05DE\u05DE\u05D0\u05DE\u05E6\u05D9 \u05D4\u05D0\u05D2\u05D5\u05D3\u05D4 \u05D4\u05DC\u05D0\u05D5\u05DE\u05D9\u05EA').join(' ');
+        const out = await diacritize(tf, model, text);
+        assert.equal(remove_niqqud(out), text);
+        assert.ok(/[\u05B0-\u05BC]/.test(out));
+    });
+
     test('no tensor leaks across calls', async () => {
         await diacritize(tf, model, 'בדיקת זיכרון ראשונה');
         const before = tf.memory().numTensors;

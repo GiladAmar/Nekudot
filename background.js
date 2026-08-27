@@ -36,7 +36,29 @@ async function pick_backend() {
 // Segments are processed in chunks: each chunk is one model.predict call,
 // results stream back per segment, and yielding between chunks keeps the
 // service worker responsive on select-all-sized inputs.
-const SEGMENTS_PER_CHUNK = 32;
+//
+// Chunking is by CHARACTER count, not segment count: a single huge segment
+// (the paste page sends a whole textarea as one) would otherwise slip past
+// a per-segment cap and rebuild the memory blowup this all exists to fix.
+// A chunk always holds at least one segment, so an oversized segment still
+// goes through alone rather than being dropped.
+const CHARS_PER_CHUNK = 4000;
+
+function chunkSegments(segments) {
+    const chunks = [];
+    let chunk = [], chars = 0;
+    for (const segment of segments) {
+        if (chunk.length > 0 && chars + segment.text.length > CHARS_PER_CHUNK) {
+            chunks.push(chunk);
+            chunk = [];
+            chars = 0;
+        }
+        chunk.push(segment);
+        chars += segment.text.length;
+    }
+    if (chunk.length > 0) chunks.push(chunk);
+    return chunks;
+}
 
 async function load_model() {
     await pick_backend();
@@ -97,13 +119,23 @@ async function invoke(tab, file) {
             },
         });
         const frameIds = probes.filter(p => p && p.result).map(p => p.frameId);
-        // no selection anywhere: whole-page mode in every reachable frame,
-        // matching the explicit whole-page menu (and letting no-selection
-        // Remove nikud restore iframe work)
-        await chrome.scripting.executeScript({
-            target: frameIds.length > 0 ? {tabId: tab.id, frameIds} : {tabId: tab.id, allFrames: true},
-            files: [file],
-        });
+        const target = frameIds.length > 0
+            ? {tabId: tab.id, frameIds}
+            // no selection anywhere: whole-page mode in every reachable frame,
+            // matching the explicit whole-page menu (and letting no-selection
+            // Remove nikud restore iframe work)
+            : {tabId: tab.id, allFrames: true};
+        if (frameIds.length > 0) {
+            // Probe and injection are two round trips; the selection can
+            // collapse in between (page script, stray click). Tell the entry
+            // point this was a selection request so it reports the lost
+            // selection instead of silently rewriting the whole frame.
+            await chrome.scripting.executeScript({
+                target,
+                func: () => { window.__nekudotSelectionOnly = true; },
+            });
+        }
+        await chrome.scripting.executeScript({target, files: [file]});
     } catch (e) {
         console.warn('Nekudot: cannot run on this page', e);
     }
@@ -191,8 +223,7 @@ async function handleRequest(port, segments) {
     }
 
     try {
-        for (let i = 0; i < segments.length; i += SEGMENTS_PER_CHUNK) {
-            const chunk = segments.slice(i, i + SEGMENTS_PER_CHUNK);
+        for (const chunk of chunkSegments(segments)) {
             const results = await diacritize_batch(tf, m, chunk.map(s => s.text));
             for (let j = 0; j < chunk.length; j++) {
                 if (!post(port, {type: 'result', id: chunk[j].id, text: results[j]}))

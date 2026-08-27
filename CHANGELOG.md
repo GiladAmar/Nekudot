@@ -49,8 +49,10 @@
 - **Keyboard shortcut**: Alt+Shift+N (⌥+Shift+N on Mac), remappable at
   chrome://extensions/shortcuts. (⌘+Shift+Y was avoided — macOS reserves
   it for Sticky Notes.)
-- **Works in text boxes**: select text inside an input field, a comment box,
-  or an editor like Gmail compose, and it gets niqqud in place.
+- **Works in text boxes**: select text inside an input field or a comment
+  box and it gets niqqud in place. (Rich editors that keep their own copy of
+  the document — Google Docs, and some chat composers — may re-render and
+  drop it; use the paste page for those.)
 - **Paste page**: right-click the toolbar icon → "Open paste page" for a
   simple paste-and-copy page — useful in apps where the page can't be edited
   directly (Google Docs, Word Online).

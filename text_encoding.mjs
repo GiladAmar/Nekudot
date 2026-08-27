@@ -89,18 +89,19 @@ function remove_niqqud(text) {
 // [offset, offset + length). Characters are preserved exactly — only
 // combining marks are inserted — so callers may substitute the result for
 // the original text in place.
-function decode_chars(undotted_text, nq, dg, sn, offset) {
+function decode_chars(undotted_text, heads, charToToken, offset) {
     let output = '';
     for (let i = 0; i < undotted_text.length; i++) {
         const c = undotted_text[i];
         output += c;
         if (HEBREW_LETTERS.includes(c)) {
+            const t = charToToken[offset + i];
             if (can_dagesh(c))
-                output += dagesh_array[dg[offset + i]];
+                output += dagesh_array[heads.dagesh[t]];
             if (can_sin(c))
-                output += sin_array[sn[offset + i]];
+                output += sin_array[heads.sin[t]];
             if (can_niqqud(c))
-                output += niqqud_array[nq[offset + i]];
+                output += niqqud_array[heads.niqqud[t]];
         }
     }
     return output;
@@ -165,21 +166,25 @@ async function diacritize_batch(tf, model, texts) {
     const rows = split_to_rows(joined, MAXLEN);
     const heads = await run_model(tf, model, rows);
 
-    // per-character head classes, aligned to `joined`
-    const flat = rows.flat();
-    const nq = [], dg = [], sn = [];
-    for (let i = 0; i < flat.length; i++) {
-        if (flat[i] > 0) {
-            nq.push(heads.niqqud[i]);
-            dg.push(heads.dagesh[i]);
-            sn.push(heads.sin[i]);
-        }
+    // Map each character of `joined` to its slot in the padded row stream.
+    // One Int32Array rather than flattening the rows into a JS array and
+    // building three more: the accumulators here scale with the whole
+    // request, so they are the memory that matters on a huge paste.
+    const charToToken = new Int32Array(joined.length + 1); // +1 trailing space
+    let c = 0;
+    for (let r = 0; r < rows.length; r++) {
+        const row = rows[r];
+        const base = r * MAXLEN;
+        for (let i = 0; i < MAXLEN; i++)
+            if (row[i] > 0) charToToken[c++] = base + i;
     }
+    if (c !== charToToken.length)
+        throw new Error(`token/character misalignment: ${c} tokens for ${charToToken.length} characters`);
 
     const out = [];
     let offset = 0;
     for (const text of undotted) {
-        out.push(decode_chars(text, nq, dg, sn, offset));
+        out.push(decode_chars(text, heads, charToToken, offset));
         offset += text.length + 1; // +1 for the joining space
     }
     return out;

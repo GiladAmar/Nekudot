@@ -40,7 +40,12 @@ run.addEventListener('click', () => {
 });
 
 copy.addEventListener('click', async () => {
-    await navigator.clipboard.writeText(output.value);
-    status.textContent = 'Copied!';
-    setTimeout(() => { status.textContent = ''; }, 2000);
+    try {
+        await navigator.clipboard.writeText(output.value);
+        status.textContent = 'Copied!';
+        setTimeout(() => { status.textContent = ''; }, 2000);
+    } catch (e) {
+        // rejects when the document isn't focused or permission is denied
+        status.textContent = 'Could not copy — select the text and copy manually';
+    }
 });
