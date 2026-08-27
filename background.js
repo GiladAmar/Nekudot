@@ -79,6 +79,11 @@ async function invoke(tab, file) {
     try {
         const probes = await chrome.scripting.executeScript({
             target: {tabId: tab.id, allFrames: true},
+            // NOTE: executeScript serializes this function, so it cannot
+            // import. It must mirror the "usable selection" definition in
+            // content_runtime.mjs (scopedTextNodes + activeEditable) — if
+            // either changes, change both, or the router will inject
+            // content.js into frames whose entry point then does nothing.
             func: () => {
                 const s = window.getSelection();
                 if (s && s.rangeCount > 0 && !s.getRangeAt(0).collapsed) return true;

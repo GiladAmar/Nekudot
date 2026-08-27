@@ -37,6 +37,10 @@ function collectTextNodes(root, range = null) {
  * The text nodes this invocation should operate on: the current selection's
  * nodes when this frame has one, otherwise the whole page.
  * Returns {nodes, range} — range is null in whole-page mode.
+ *
+ * NOTE: the "usable selection" definition here (and in activeEditable) must
+ * stay in sync with the inline frame-probe function in background.js, which
+ * cannot import this module.
  */
 function scopedTextNodes() {
     const selection = window.getSelection();
