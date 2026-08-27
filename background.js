@@ -158,8 +158,12 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
         invoke(tab, 'content.js');
 });
 
-chrome.commands.onCommand.addListener((command, tab) => {
-    if (command === 'add-nekudot') invoke(tab, 'content.js');
+chrome.commands.onCommand.addListener(async (command, tab) => {
+    if (command !== 'add-nekudot') return;
+    // the tab argument only exists on newer Chrome; fall back to a query
+    if (!tab)
+        [tab] = await chrome.tabs.query({active: true, currentWindow: true});
+    invoke(tab, 'content.js');
 });
 
 function post(port, message) {
