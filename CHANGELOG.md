@@ -1,6 +1,6 @@
 # What's new in Nekudot
 
-## Version 1.3 (unreleased)
+## Version 2.0 (unreleased)
 
 ### Fixed
 
@@ -44,8 +44,10 @@
   page" anywhere, and "Remove nikud" to take it back.
 - **Whole-page mode**: click the icon with nothing selected and the entire
   page gets niqqud.
-- **Remove / undo**: "Remove nikud" restores the original text exactly —
-  including text that already had partial niqqud before.
+- **Remove / undo**: "Remove nikud" undoes exactly what Nekudot added, and
+  nothing else — text that arrived with its own vowels (a Tanakh, a siddur,
+  a learning site) is never stripped, and anything you edited afterwards is
+  left alone.
 - **Keyboard shortcut**: Alt+Shift+N (⌥+Shift+N on Mac), remappable at
   chrome://extensions/shortcuts. (⌘+Shift+Y was avoided — macOS reserves
   it for Sticky Notes.)
