@@ -1,13 +1,19 @@
 import {test, describe, before} from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
 import {join, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import * as tf from '@tensorflow/tfjs';
+import * as tf from '@tensorflow/tfjs-core';
+// wasm backend: same numerics as in the extension, ~30x faster suite than cpu
+import '@tensorflow/tfjs-backend-wasm';
+import '@tensorflow/tfjs-backend-cpu';
+import {loadModelFromDisk} from '../scripts/model_loader.mjs';
 import {normalize, split_to_rows, remove_niqqud, diacritize, diacritize_batch} from '../text_encoding.mjs';
 
 const MAXLEN = 90;
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
+
+await tf.setBackend('wasm');
+await tf.ready();
 
 function encode(text) {
     return text.replace(/./gms, normalize);
@@ -91,22 +97,7 @@ describe('end-to-end with the real model', () => {
     let model;
 
     before(async () => {
-        const dir = join(repoRoot, 'model');
-        const modelJSON = JSON.parse(await readFile(join(dir, 'model.json'), 'utf8'));
-        const weightSpecs = modelJSON.weightsManifest.flatMap(g => g.weights);
-        const buffers = await Promise.all(
-            modelJSON.weightsManifest.flatMap(g => g.paths).map(p => readFile(join(dir, p))));
-        const weightData = new Uint8Array(buffers.reduce((a, b) => a + b.length, 0));
-        let offset = 0;
-        for (const b of buffers) {
-            weightData.set(b, offset);
-            offset += b.length;
-        }
-        model = await tf.loadLayersModel(tf.io.fromMemory({
-            modelTopology: modelJSON.modelTopology,
-            weightSpecs,
-            weightData: weightData.buffer,
-        }));
+        model = await loadModelFromDisk(join(repoRoot, 'model'));
     });
 
     test('short sentence gets niqqud', async () => {

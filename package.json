@@ -9,15 +9,20 @@
     "nekudot"
   ],
   "dependencies": {
-    "@tensorflow/tfjs": "^4.16.0"
+    "@tensorflow/tfjs-backend-cpu": "^4.22.0",
+    "@tensorflow/tfjs-backend-wasm": "^4.22.0",
+    "@tensorflow/tfjs-backend-webgl": "^4.22.0",
+    "@tensorflow/tfjs-core": "^4.22.0",
+    "@tensorflow/tfjs-layers": "^4.22.0"
   },
   "scripts": {
     "test": "node --test \"tests/**/*.test.mjs\"",
-    "copy": "cp manifest.json dist/ && cp -R images dist/images && cp -R model dist/model",
+    "copy": "cp manifest.json dist/ && cp -R images dist/images && cp -R model dist/model && mkdir -p dist/wasm && cp node_modules/@tensorflow/tfjs-backend-wasm/dist/*.wasm dist/wasm/",
     "prebuild": "rm -rf dist",
     "prebuild-dev": "rm -rf dist",
     "build": "parcel build content.js background.js --dist-dir dist && npm run copy",
-    "build-dev": "NODE_ENV=development parcel build content.js background.js --dist-dir dist && npm run copy"
+    "build-dev": "NODE_ENV=development parcel build content.js background.js --dist-dir dist && npm run copy",
+    "bench": "node scripts/benchmark_backends.mjs"
   },
   "devDependencies": {
     "@babel/core": "^7.28.5",
