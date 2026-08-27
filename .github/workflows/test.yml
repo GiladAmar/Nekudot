@@ -1,5 +1,10 @@
 name: test
 
+# Runs entirely offline: the committed tests/fixtures/regression-page.html
+# covers every construct that has broken this extension. The live news
+# homepages are optional (`npm run fixtures`) and are skipped when absent,
+# so a site being down or blocking a runner can never redden a build.
+
 on:
   push:
     branches: [master]
@@ -8,9 +13,6 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    # Chrome is needed here too: fetch_fixture falls back to headless Chrome
-    # for sites that block plain HTTP, and without fixtures the real-page
-    # tests would silently skip.
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -19,8 +21,6 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      # best-effort: the real-page test skips cleanly if the fetch fails
-      - run: npm run fixtures
       - run: npm test
       - run: npm run build
 
@@ -34,7 +34,5 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run fixtures
       - run: npm run build
-      # skips cleanly when the fixture fetch was blocked
       - run: npm run test:e2e

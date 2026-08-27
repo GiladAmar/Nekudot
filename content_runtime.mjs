@@ -134,6 +134,10 @@ function requestDiacritics(segments, pending, {onDone, onFail} = {}) {
 
     const rollbacks = [];
     let finished = false;
+    // Progress signal on the document element: content scripts run in an
+    // isolated world, so a plain variable is invisible outside it, while the
+    // DOM is shared. Removed again when the run ends, leaving no trace.
+    document.documentElement.setAttribute('data-nekudot-busy', '');
 
     function applyToNode(entry, text) {
         const node = entry.node;
@@ -161,6 +165,7 @@ function requestDiacritics(segments, pending, {onDone, onFail} = {}) {
 
     function fail(message) {
         finished = true;
+        document.documentElement.removeAttribute('data-nekudot-busy');
         for (const rollback of rollbacks.reverse()) rollback();
         if (onFail) onFail(message);
         else showToast(message);
@@ -182,6 +187,7 @@ function requestDiacritics(segments, pending, {onDone, onFail} = {}) {
             pending.delete(msg.id);
         } else if (msg.type === 'done') {
             finished = true;
+            document.documentElement.removeAttribute('data-nekudot-busy');
             port.disconnect();
             if (onDone) onDone();
         } else if (msg.type === 'fatal') {

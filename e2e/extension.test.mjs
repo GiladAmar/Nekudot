@@ -81,20 +81,33 @@ describe('extension end-to-end in Chrome', {skip: missing}, () => {
         return n;
     }, MARKS);
 
-    // Results stream in; wait until the mark count is stable for 2s.
+    // Clear the run marker so a previous run can't be mistaken for this one.
+    const armRun = (page) => page.evaluate(() =>
+        document.documentElement.removeAttribute('data-nekudot-busy'));
+
+    // Wait for the content script to signal the run finished, rather than
+    // guessing from when the DOM stops changing — a slow chunk looked exactly
+    // like completion and cut measurements short on the biggest pages.
     async function waitForStable(page, baseline, t0) {
-        let last = baseline, stable = 0, first = 0;
+        let last = baseline, first = 0, sawBusy = false, idle = 0;
         const deadline = Date.now() + 180000;
         while (Date.now() < deadline) {
-            await new Promise(r => setTimeout(r, 500));
-            const n = await markCount(page);
+            await new Promise(r => setTimeout(r, 250));
+            const [busy, n] = await Promise.all([
+                page.evaluate(() => document.documentElement.hasAttribute('data-nekudot-busy')),
+                markCount(page),
+            ]);
             if (n > baseline && first === 0) first = performance.now() - t0;
-            stable = (n === last && n > baseline) ? stable + 1 : 0;
             last = n;
-            if (stable >= 4) break;
+            if (busy) { sawBusy = true; idle = 0; continue; }
+            // Finished: either we watched it run, or it completed between
+            // polls and left new marks behind.
+            if (sawBusy || n > baseline) break;
+            // Nothing yet. A cold service worker reloads the model first, so
+            // give it room before concluding no run started at all.
+            if (++idle > 240) break; // 60s
         }
-        // totalMs excludes the 2s stability confirmation window
-        return {count: last, firstMs: first, totalMs: performance.now() - t0 - 2000};
+        return {count: last, firstMs: first, totalMs: performance.now() - t0};
     }
 
     // -----------------------------------------------------------------------
@@ -164,6 +177,7 @@ describe('extension end-to-end in Chrome', {skip: missing}, () => {
                     n + (el.textContent.match(new RegExp(`[${MARKS}]`, 'g')) || []).length, 0), MARKS);
             const scriptMarksBefore = await scriptMarks();
 
+            await armRun(page);
             const t0 = performance.now();
             await invokeOn(page);
             const {count, firstMs, totalMs} = await waitForStable(page, baseline, t0);
@@ -182,7 +196,10 @@ describe('extension end-to-end in Chrome', {skip: missing}, () => {
                     const text = node.textContent;
                     const capable = (text.match(CAN_NIQQUD) || []).length;
                     if (capable === 0) continue;
-                    if (node.parentElement && node.parentElement.closest('script,style,noscript,template'))
+                    // Same exclusions the extension applies: unrendered text,
+                    // and form controls whose text IS their submitted value.
+                    if (node.parentElement && node.parentElement.closest(
+                        'script,style,noscript,template,option,select,textarea'))
                         continue; // intentionally untouched
                     const tag = node.parentElement ? node.parentElement.tagName.toLowerCase() : '?';
                     const entry = perTag[tag] ??= {nodes: 0, dotted: 0, capableChars: 0};
@@ -229,6 +246,7 @@ describe('extension end-to-end in Chrome', {skip: missing}, () => {
 
         // First full run.
         await selectAll(page);
+        await armRun(page);
         const t0 = performance.now();
         await invokeOn(page);
         const first = await waitForStable(page, 0, t0);
@@ -237,6 +255,7 @@ describe('extension end-to-end in Chrome', {skip: missing}, () => {
         // Re-run with nothing new: everything is already dotted, so the
         // mark count must not change.
         await selectAll(page);
+        await armRun(page);
         await invokeOn(page);
         await new Promise(r => setTimeout(r, 4000));
         const afterRerun = await markCount(page);
@@ -252,6 +271,7 @@ describe('extension end-to-end in Chrome', {skip: missing}, () => {
             document.body.appendChild(div);
         });
         await selectAll(page);
+        await armRun(page);
         const t1 = performance.now();
         await invokeOn(page);
         const incremental = await waitForStable(page, afterRerun, t1);
@@ -289,6 +309,7 @@ describe('extension end-to-end in Chrome', {skip: missing}, () => {
             sel.removeAllRanges();
             sel.addRange(range);
         });
+        await armRun(page);
         const t0 = performance.now();
         await sw.evaluate(async (url) => {
             const [tab] = await chrome.tabs.query({url});
@@ -325,6 +346,7 @@ describe('extension end-to-end in Chrome', {skip: missing}, () => {
 
         // Selection collapses, then a whole-page run in the same frame.
         await page.evaluate(() => window.getSelection().removeAllRanges());
+        await armRun(page);
         const t0 = performance.now();
         await invokeOn(page);
         const {count} = await waitForStable(page, 0, t0);

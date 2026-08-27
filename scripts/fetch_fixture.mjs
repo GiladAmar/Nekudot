@@ -41,6 +41,7 @@ function looksLikeRealPage(html) {
 }
 
 for (const {name, url} of FIXTURES) {
+    if (!url) continue; // committed fixture, nothing to download
     let html = null;
     try {
         // bot-protection tarpits accept the connection and then stall; without
