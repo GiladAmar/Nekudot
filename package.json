@@ -27,13 +27,10 @@
     "test:e2e": "node --test \"e2e/**/*.test.mjs\""
   },
   "devDependencies": {
-    "@babel/core": "^7.28.5",
-    "@babel/preset-env": "^7.28.5",
-    "@babel/runtime": "^7.28.4",
     "buffer": "^6.0.3",
     "clang-format": "^1.8.0",
     "jsdom": "^29.1.1",
-    "parcel": "^2.16.3",
+    "parcel": "^2.16.4",
     "process": "^0.11.10",
     "puppeteer": "^25.9.0"
   },
