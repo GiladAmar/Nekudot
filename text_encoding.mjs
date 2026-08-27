@@ -1,6 +1,5 @@
 const MAXLEN = 90;
 
-const RAFE = '\u05BF';
 const niqqud_array = ['', '', 'ְ', 'ֱ', 'ֲ', 'ֳ', 'ִ', 'ֵ', 'ֶ', 'ַ', 'ָ', 'ֹ', 'ֺ', 'ֻ', 'ּ', 'ַ'];
 const dagesh_array = ['', '', 'ּ'];
 const sin_array = ['', '', 'ׁ', 'ׂ'];
@@ -12,7 +11,9 @@ const SPECIAL_TOKENS = ['H', 'O', '5'];
 const ALL_TOKENS = [''].concat(SPECIAL_TOKENS).concat(VALID_LETTERS);
 
 function normalize(c) {
-    if (c === '\n' || c === '\t' || c === '\r' || c === '\u00A0') return ' ';
+    // Any Unicode whitespace separates words; mapping only a hardcoded few
+    // left thin/en/em spaces etc. gluing words into giant tokens.
+    if (/\s/.test(c)) return ' ';
     if (VALID_LETTERS.includes(c)) return c;
     if (['־', '‒', '–', '—', '―', '−'].includes(c)) return '-';
     if (c === '[') return '(';
@@ -72,14 +73,38 @@ function can_niqqud(letter) {
     return ('אבגדהוזחטיכלמנסעפצקרשת' + 'ךן').includes(letter);
 }
 
+// Strip only MARKS (niqqud, dagesh, shin/sin dots, rafe, meteg,
+// cantillation) — NOT the punctuation code points that share the block:
+// maqaf \u05BE, paseq \u05C0, sof pasuq \u05C3, nun hafukha \u05C6.
+// A wider range silently deleted maqaf from every dotted text
+// (\u05D1\u05D9\u05EA\u05BE\u05E1\u05E4\u05E8 became one glued word).
+const HEBREW_MARKS_RE = /[\u0591-\u05BD\u05BF\u05C1\u05C2\u05C4\u05C5\u05C7]/;
+
 function remove_niqqud(text) {
-    return text.replace(/[\u0591-\u05C7]/g, '');
+    return text.replace(new RegExp(HEBREW_MARKS_RE.source, 'g'), '');
 }
 
-function encode_text(text) {
-    const undotted = remove_niqqud(text);
-    const rows = split_to_rows(undotted.replace(/./gms, normalize), MAXLEN);
-    return {undotted, rows};
+// Insert predicted marks into undotted text. The per-character head classes
+// (nq/dg/sn) are aligned to a stream of which this text occupies
+// [offset, offset + length). Characters are preserved exactly — only
+// combining marks are inserted — so callers may substitute the result for
+// the original text in place.
+function decode_chars(undotted_text, heads, charToToken, offset) {
+    let output = '';
+    for (let i = 0; i < undotted_text.length; i++) {
+        const c = undotted_text[i];
+        output += c;
+        if (HEBREW_LETTERS.includes(c)) {
+            const t = charToToken[offset + i];
+            if (can_dagesh(c))
+                output += dagesh_array[heads.dagesh[t]];
+            if (can_sin(c))
+                output += sin_array[heads.sin[t]];
+            if (can_niqqud(c))
+                output += niqqud_array[heads.niqqud[t]];
+        }
+    }
+    return output;
 }
 
 // Only rows containing a Hebrew letter can receive marks; the rest of a
@@ -109,9 +134,9 @@ async function run_model(tf, model, rows) {
         const indices = kept.slice(start, start + ROWS_PER_PREDICT);
         const argmaxes = tf.tidy(() => {
             const input = tf.tensor2d(indices.map(i => rows[i]), [indices.length, MAXLEN], 'float32');
-            const heads = model.predict(input, {batchSize: 64});
+            const outputs = model.predict(input, {batchSize: 64}); // [niqqud, dagesh, sin]
             // functional API: modular tfjs-core does not register chained tensor ops
-            return heads.map(h => tf.argMax(h, -1));
+            return outputs.map(h => tf.argMax(h, -1));
         });
         // async readback: no dataSync() stall on the GPU pipeline
         const [niqqud, dagesh, sin] = await Promise.all(argmaxes.map(t => t.data()));
@@ -127,52 +152,40 @@ async function run_model(tf, model, rows) {
     return heads;
 }
 
-// Turn one segment's slice of the model output back into dotted text.
-// `flat_input` is the segment's encoded rows flattened; `offset` is where
-// those rows start inside the batched head arrays. The characters of the
-// input are preserved exactly — only combining marks are inserted — so
-// callers may substitute the result for the original text in place.
-function decode(flat_input, heads, undotted_text, offset) {
-    const niqqud_result = [];
-    const dagesh_result = [];
-    const sin_result = [];
-    for (let i = 0; i < flat_input.length; i++) {
-        if (flat_input[i] > 0) {
-            niqqud_result.push(heads.niqqud[offset + i]);
-            dagesh_result.push(heads.dagesh[offset + i]);
-            sin_result.push(heads.sin[offset + i]);
-        }
-    }
-
-    let output = '';
-    for (let i = 0; i < undotted_text.length; i++) {
-        const c = undotted_text[i];
-        output += c;
-        if (HEBREW_LETTERS.includes(c)) {
-            if (can_dagesh(c))
-                output += dagesh_array[dagesh_result[i]];
-            if (can_sin(c))
-                output += sin_array[sin_result[i]];
-            if (can_niqqud(c))
-                output += niqqud_array[niqqud_result[i]];
-        }
-    }
-    return output;
-}
-
-// Diacritize several independent text segments, batching their rows into
-// shared predict calls. Returns one dotted string per input segment, in order.
+// Diacritize several text segments with one shared row stream. Segments are
+// joined with single spaces before row-splitting, so many short segments
+// (one per DOM text node on a news page) share rows instead of each padding
+// its own — on a real homepage this cuts predicted rows roughly 3x.
+// The non-padding tokens of the joined stream are exactly `joined + ' '`
+// (split_to_rows re-emits every consumed delimiter), so segment i's
+// characters live at [sum(len_j + 1 for j < i), ... + len_i) of the
+// filtered stream. Returns one dotted string per input segment, in order.
 async function diacritize_batch(tf, model, texts) {
-    const encoded = texts.map(encode_text);
-    const allRows = encoded.flatMap(e => e.rows);
-    const heads = await run_model(tf, model, allRows);
+    const undotted = texts.map(remove_niqqud);
+    const joined = undotted.map(t => t.replace(/./gms, normalize)).join(' ');
+    const rows = split_to_rows(joined, MAXLEN);
+    const heads = await run_model(tf, model, rows);
+
+    // Map each character of `joined` to its slot in the padded row stream.
+    // One Int32Array rather than flattening the rows into a JS array and
+    // building three more: the accumulators here scale with the whole
+    // request, so they are the memory that matters on a huge paste.
+    const charToToken = new Int32Array(joined.length + 1); // +1 trailing space
+    let c = 0;
+    for (let r = 0; r < rows.length; r++) {
+        const row = rows[r];
+        const base = r * MAXLEN;
+        for (let i = 0; i < MAXLEN; i++)
+            if (row[i] > 0) charToToken[c++] = base + i;
+    }
+    if (c !== charToToken.length)
+        throw new Error(`token/character misalignment: ${c} tokens for ${charToToken.length} characters`);
 
     const out = [];
     let offset = 0;
-    for (const e of encoded) {
-        const flat = e.rows.flat();
-        out.push(decode(flat, heads, e.undotted, offset));
-        offset += flat.length;
+    for (const text of undotted) {
+        out.push(decode_chars(text, heads, charToToken, offset));
+        offset += text.length + 1; // +1 for the joining space
     }
     return out;
 }
@@ -181,9 +194,33 @@ async function diacritize(tf, model, text) {
     return (await diacritize_batch(tf, model, [text]))[0];
 }
 
+// Group segments into per-predict batches by CHARACTER count, not segment
+// count: a single huge segment (the paste page sends a whole textarea as
+// one) would otherwise slip past a per-segment cap and rebuild the memory
+// blowup this all exists to fix. A chunk always holds at least one segment,
+// so an oversized segment still goes through alone rather than being lost.
+const CHARS_PER_CHUNK = 4000;
+
+function chunkSegments(segments, charsPerChunk = CHARS_PER_CHUNK) {
+    const chunks = [];
+    let chunk = [], chars = 0;
+    for (const segment of segments) {
+        if (chunk.length > 0 && chars + segment.text.length > charsPerChunk) {
+            chunks.push(chunk);
+            chunk = [];
+            chars = 0;
+        }
+        chunk.push(segment);
+        chars += segment.text.length;
+    }
+    if (chunk.length > 0) chunks.push(chunk);
+    return chunks;
+}
+
 export {
-    MAXLEN, RAFE, niqqud_array, dagesh_array, sin_array,
+    MAXLEN, niqqud_array, dagesh_array, sin_array,
     HEBREW_LETTERS, VALID_LETTERS, SPECIAL_TOKENS, ALL_TOKENS,
     normalize, split_to_rows, can_dagesh, can_sin, can_niqqud,
-    remove_niqqud, encode_text, diacritize, diacritize_batch,
+    remove_niqqud, HEBREW_MARKS_RE, diacritize, diacritize_batch,
+    chunkSegments, CHARS_PER_CHUNK,
 };

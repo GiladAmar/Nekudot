@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@900&display=swap" rel="stylesheet">
+<style>body { margin: 0; background: transparent; } #icon { width: 512px; height: 512px; }</style>
+</head>
+<body>
+<div id="icon"></div>
+<script>
+// Final design: "C4 royal deep" — Frank Ruhl Libre 900 aleph, royal blue
+// gradient, gold kamatz beneath. Rendered at 512 and downscaled.
+const s = 512;
+const r = 27 * s / 128;
+const kw = s * 0.36, kh = s * 0.065, stem = s * 0.10;
+const ky = s * 0.785;
+document.getElementById('icon').innerHTML = `
+<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#172554"/><stop offset="1" stop-color="#2563eb"/>
+    </linearGradient>
+    <radialGradient id="glow"><stop offset="0" stop-color="#fff" stop-opacity="0.14"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="${s}" height="${s}" rx="${r}" fill="url(#bg)"/>
+  <circle cx="${s/2}" cy="${s*0.45}" r="${s*0.52}" fill="url(#glow)"/>
+  <text x="${s/2}" y="${s*0.63}" text-anchor="middle" font-family="Frank Ruhl Libre"
+        font-weight="900" font-size="${s*0.72}" fill="#ffffff">א</text>
+  <rect x="${s/2 - kw/2}" y="${ky}" width="${kw}" height="${kh}" rx="${kh/2}" fill="#facc15"/>
+  <rect x="${s/2 - kh/2}" y="${ky + kh*0.6}" width="${kh}" height="${stem}" rx="${kh/2}" fill="#facc15"/>
+</svg>`;
+</script>
+</body>
+</html>

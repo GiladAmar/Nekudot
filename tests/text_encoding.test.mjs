@@ -12,8 +12,9 @@ import {normalize, split_to_rows, remove_niqqud, diacritize, diacritize_batch} f
 const MAXLEN = 90;
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-await tf.setBackend('wasm');
+assert.ok(await tf.setBackend('wasm'), 'wasm backend must initialize — tests must not silently fall back to cpu');
 await tf.ready();
+assert.equal(tf.getBackend(), 'wasm');
 
 function encode(text) {
     return text.replace(/./gms, normalize);
@@ -91,6 +92,38 @@ describe('split_to_rows', () => {
         assert.deepEqual(t.shape, [rows.length, MAXLEN]);
         t.dispose();
     });
+
+    test('all Unicode whitespace normalizes to a space', () => {
+        for (const space of ['\u00A0', '\u2009', '\u2002', '\u2003', '\u3000', '\u202F', '\u205F', '\u2028', '\u2029']) {
+            assert.equal(normalize(space), ' ', 'U+' + space.codePointAt(0).toString(16) + ' must become a space');
+        }
+        const text = encode('\u05E9\u05DC\u05D5\u05DD\u2009\u05E2\u05D5\u05DC\u05DD\u202F\u05E9\u05D5\u05D1');
+        assert.ok(!text.includes('O'), 'unicode spaces must not glue words');
+        assertValidRows(split_to_rows(text, MAXLEN), text);
+    });
+});
+
+describe('remove_niqqud', () => {
+    test('strips all niqqud, dagesh and cantillation marks', () => {
+        assert.equal(remove_niqqud('\u05E9\u05B8\u05C1\u05DC\u05D5\u05B9\u05DD'), '\u05E9\u05DC\u05D5\u05DD');
+        assert.equal(remove_niqqud('\u05D1\u05BC\u05B0\u05E8\u05B5\u05D0\u05E9\u05B4\u05C1\u05D9\u05EA'), '\u05D1\u05E8\u05D0\u05E9\u05D9\u05EA');
+    });
+    test('preserves Hebrew punctuation: maqaf, paseq, sof pasuq', () => {
+        // \u05BE maqaf, \u05C0 paseq, \u05C3 sof pasuq share the block with
+        // the marks but are punctuation and must survive stripping
+        const text = '\u05D1\u05D9\u05EA\u05BE\u05E1\u05E4\u05E8 \u05C0 \u05E1\u05D5\u05E3\u05C3';
+        assert.equal(remove_niqqud(text), text);
+    });
+
+    test('strips cantillation and meteg but keeps the letters', () => {
+        // \u0596 tipeha (cantillation), \u05BD meteg
+        assert.equal(remove_niqqud('\u05D0\u0596\u05D1\u05BD'), '\u05D0\u05D1');
+    });
+
+    test('leaves unmarked text alone', () => {
+        const text = '\u05E9\u05DC\u05D5\u05DD hello 123';
+        assert.equal(remove_niqqud(text), text);
+    });
 });
 
 describe('end-to-end with the real model', () => {
@@ -131,17 +164,38 @@ describe('end-to-end with the real model', () => {
         assert.equal(remove_niqqud(out), text);
     });
 
-    test('diacritize_batch matches per-segment diacritize', async () => {
+    test('maqaf survives the full pipeline verbatim', async () => {
+        const text = '\u05D1\u05D9\u05EA\u05BE\u05E1\u05E4\u05E8 \u05D7\u05D3\u05E9';
+        const out = await diacritize(tf, model, text);
+        assert.ok(out.includes('\u05BE'), 'maqaf must not be deleted from dotted text');
+        assert.equal(remove_niqqud(out), text);
+    });
+
+    test('diacritize_batch: every segment round-trips and gets niqqud', async () => {
+        // Batched segments share row context (they are joined with spaces
+        // before row-splitting, like the original extension), so outputs are
+        // not required to be bit-identical to per-segment runs — but each
+        // segment must map back to exactly its own text.
         const texts = [
             'הם חלק ממאמצי האגודה הלאומית',
             'כותרת ראשית: דבר מה קרה היום.',
             'עוד פסקה עם טקסט עברי רגיל.',
         ];
         const batched = await diacritize_batch(tf, model, texts);
-        const separate = [];
-        for (const t of texts)
-            separate.push(await diacritize(tf, model, t));
-        assert.deepEqual(batched, separate);
+        assert.equal(batched.length, texts.length);
+        for (let i = 0; i < texts.length; i++) {
+            assert.equal(remove_niqqud(batched[i]), texts[i]);
+            assert.ok(/[\u05B0-\u05BC]/.test(batched[i]), `segment ${i} should get niqqud`);
+        }
+    });
+
+    test('one huge segment (paste-page case) round-trips exactly', async () => {
+        // The paste page sends a whole textarea as a single segment, so the
+        // per-request accumulators must stay aligned at scale.
+        const text = Array(400).fill('\u05D4\u05DD \u05D7\u05DC\u05E7 \u05DE\u05DE\u05D0\u05DE\u05E6\u05D9 \u05D4\u05D0\u05D2\u05D5\u05D3\u05D4 \u05D4\u05DC\u05D0\u05D5\u05DE\u05D9\u05EA').join(' ');
+        const out = await diacritize(tf, model, text);
+        assert.equal(remove_niqqud(out), text);
+        assert.ok(/[\u05B0-\u05BC]/.test(out));
     });
 
     test('no tensor leaks across calls', async () => {

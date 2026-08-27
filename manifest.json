@@ -12,8 +12,17 @@
   },
   "permissions": [
     "activeTab",
+    "contextMenus",
     "scripting"
   ],
+  "commands": {
+    "add-nekudot": {
+      "suggested_key": {
+        "default": "Alt+Shift+N"
+      },
+      "description": "Add nekudot to the selection (or the whole page)"
+    }
+  },
   "action": {
     "default_icon": {
       "16": "/images/aleph_16.png",

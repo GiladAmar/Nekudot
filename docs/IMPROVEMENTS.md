@@ -41,7 +41,7 @@ Implemented as a chain of stacked PRs, one theme at a time.
   backend instead of the full 1.13 MB `@tensorflow/tfjs`.
 - [x] **Benchmark WASM backend** (SIMD/threads) against the current setup;
   small-batch BiLSTMs over 90 timesteps are often CPU-bound.
-- [ ] **GraphModel conversion + float16 quantization**: the Python
+- [x] **GraphModel conversion + float16 quantization**: the Python
   `tensorflowjs_converter` cannot deserialize this model (Keras 2.19 weight
   naming mismatch: `KeyError: 'bidirectional/forward_lstm/kernel'`).
   Plan B: quantize the weights manifest to float16 directly in Node —
@@ -51,16 +51,30 @@ Implemented as a chain of stacked PRs, one theme at a time.
 
 ## 3. New features
 
-- [ ] **Context-menu entry and keyboard shortcut** — more discoverable than
+- [x] **Context-menu entry and keyboard shortcut** — more discoverable than
   the toolbar icon.
-- [ ] **Iframe selections** — `executeScript` currently targets only the top
+- [x] **Iframe selections** — `executeScript` currently targets only the top
   frame, silently ignoring text selected inside embedded frames.
-- [ ] **Whole-page mode** — with no selection, dot all Hebrew text on the page.
-- [ ] **Toggle/undo** — second invocation restores the original text.
-- [ ] **Editable-field support** — `<textarea>`, `<input>`, `contenteditable`
+- [x] **Whole-page mode** — with no selection, dot all Hebrew text on the page.
+- [x] **Toggle/undo** — second invocation restores the original text.
+- [x] **Editable-field support** — `<textarea>`, `<input>`, `contenteditable`
   (Gmail compose, comment boxes).
-- [ ] **Paste page** — a simple extension page with a paste box: works on
+- [x] **Paste page** — a simple extension page with a paste box: works on
   sites where DOM rewriting can't (canvas-rendered apps, Word Online, etc.).
+
+## Automated testing (added after the plan)
+
+- [x] **Real-page pipeline test**: a downloaded ynet homepage snapshot
+  (gitignored; `npm run fixtures`) runs through the exact content-script
+  segmentation + background pipeline in jsdom (`tests/real_page.test.mjs`).
+- [x] **Browser end-to-end test**: Puppeteer launches real Chrome with the
+  built extension, simulates Ctrl+A on the served snapshot, invokes the
+  extension, verifies the wasm backend is live in the MV3 service worker,
+  and inspects the final HTML — every Hebrew-bearing element type must be
+  dotted (`npm run test:e2e`).
+- [x] **Segment packing**: batched segments share rows (joined with spaces
+  before row-splitting) — the 444-segment ynet page dropped from ~16s to
+  ~5.5s in the pipeline test, ~7.7s end-to-end in Chrome.
 
 ## Out of scope (future)
 

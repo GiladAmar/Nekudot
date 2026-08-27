@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Frank+Ruhl+Libre:wght@900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    width: 1280px; height: 800px; margin: 0; overflow: hidden;
+    font-family: Inter, sans-serif;
+    background: radial-gradient(120% 140% at 15% -20%, #1e40af 0%, #172554 45%, #0b1533 100%);
+    color: #fff; position: relative;
+  }
+  .watermark {
+    position: absolute; left: -80px; bottom: -180px;
+    font-family: 'Frank Ruhl Libre'; font-weight: 900; font-size: 600px;
+    color: #fff; opacity: 0.04; line-height: 1;
+  }
+  .header { text-align: center; padding: 58px 80px 40px; position: relative; }
+  h1 { font-size: 42px; font-weight: 800; letter-spacing: -0.8px; margin: 0 0 14px; }
+  h1 .gold { color: #facc15; }
+  .sub { font-size: 20px; color: #c7d4f2; margin: 0 auto; max-width: 800px; line-height: 1.5; font-weight: 500; }
+  .grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 26px;
+    width: 1080px; margin: 0 auto; position: relative;
+  }
+  .card {
+    background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14);
+    border-radius: 18px; padding: 26px 30px; display: flex; gap: 20px; align-items: flex-start;
+  }
+  .ic {
+    width: 54px; height: 54px; flex: none; border-radius: 14px;
+    background: rgba(250, 204, 21, .15); border: 1px solid rgba(250, 204, 21, .4);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .ic svg { width: 28px; height: 28px; stroke: #facc15; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .card h2 { font-size: 21.5px; font-weight: 700; margin: 2px 0 8px; }
+  .card p { font-size: 16.5px; line-height: 1.5; color: #c7d4f2; margin: 0; font-weight: 450; }
+  .stats {
+    display: flex; justify-content: center; gap: 18px; margin: 38px auto 0; width: 1080px;
+  }
+  .stat {
+    flex: 1; text-align: center; background: rgba(250, 204, 21, .07);
+    border: 1px solid rgba(250, 204, 21, .25); border-radius: 14px; padding: 18px 10px;
+  }
+  .stat .n { font-size: 30px; font-weight: 800; color: #facc15; letter-spacing: -0.5px; }
+  .stat .l { font-size: 15px; color: #c7d4f2; margin-top: 5px; font-weight: 500; }
+  .footer {
+    position: absolute; bottom: 40px; left: 0; right: 0;
+    display: flex; align-items: center; justify-content: center; gap: 14px;
+    font-size: 18px; font-weight: 600; color: #dbe5fa;
+  }
+  .footer img { width: 34px; height: 34px; border-radius: 8px; }
+  .footer .sep { color: #4b5f92; }
+  .footer .link { color: #facc15; }
+</style>
+</head>
+<body>
+<div class="watermark">אָ</div>
+<div class="header">
+  <h1>Private by design. <span class="gold">Fast by engineering.</span></h1>
+  <p class="sub">The neural network runs inside your browser with a WebAssembly engine — your text never goes anywhere.</p>
+</div>
+<div class="grid">
+  <div class="card">
+    <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9 12l2 2 4-4.5"/></svg></div>
+    <div><h2>100% on-device</h2><p>No server, no account, no tracking. Works offline, and websites can't even tell it's installed.</p></div>
+  </div>
+  <div class="card">
+    <div class="ic"><svg viewBox="0 0 24 24"><path d="M13 2L4 14h6l-1 8 9-12h-6z"/></svg></div>
+    <div><h2>First words in about a second</h2><p>A full news homepage takes a few seconds, with results streaming onto the page as they're computed.</p></div>
+  </div>
+  <div class="card">
+    <div class="ic"><svg viewBox="0 0 24 24"><path d="M9 14l-5-5 5-5"/><path d="M4 9h10a6 6 0 016 6v1a6 6 0 01-6 6H8"/></svg></div>
+    <div><h2>Fully reversible</h2><p>"Remove nikud" restores the original text exactly — even text that had partial nikud to begin with.</p></div>
+  </div>
+  <div class="card">
+    <div class="ic"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 11-2.6-6.4"/><path d="M21 3v6h-6"/></svg></div>
+    <div><h2>Smart re-runs</h2><p>Run it again after infinite scroll loads more — only the new text is processed, in a fraction of the time.</p></div>
+  </div>
+</div>
+<div class="stats">
+  <div class="stat"><div class="n">~0.8 s</div><div class="l">to the first vowel marks</div></div>
+  <div class="stat"><div class="n">~6 s</div><div class="l">for a full news homepage (8,700 marks)</div></div>
+  <div class="stat"><div class="n">12 MB</div><div class="l">install — model included</div></div>
+</div>
+<div class="footer">
+  <img src="final/icons/aleph_512.png">
+  <span>Free, forever</span><span class="sep">·</span>
+  <span>Open source at <span class="link">github.com/GiladAmar/Nekudot</span></span>
+</div>
+</body>
+</html>

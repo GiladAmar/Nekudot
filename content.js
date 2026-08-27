@@ -1,91 +1,77 @@
-import {nodeSegment} from './content_lib.mjs';
+// Diacritize entry point. The background's frame probe enforces scope:
+// this file is injected into the frames that have a selection, or — when
+// no frame has one — into every reachable frame for whole-page mode.
+import {nodeSegment, isMostlyDotted, collectSegments} from './content_lib.mjs';
+import {scopedTextNodes, requestDiacritics, applyWithRegistry, activeEditable, setEditableValue, showToast, runWholePage} from './content_runtime.mjs';
 
-/**
- * Get the text nodes contained in a given range, skipping nodes whose text
- * is never rendered (script/style/etc.) — a select-all range can intersect
- * Hebrew-containing JSON-LD, which must not be rewritten.
- *
- * @param {Range} range
- * @returns {Text[]}
- */
-function getSelectedNodes(range) {
-    const root = range.commonAncestorContainer.nodeType === Node.TEXT_NODE
-        ? range.commonAncestorContainer.parentElement
-        : range.commonAncestorContainer;
-    if (!root) return [];
+// Selection inside an <input>/<textarea>: splice the diacritized text into
+// the element's value (DOM walking can't reach it).
+function setNekudotEditable(el) {
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    const valueAtRequest = el.value;
+    const seg = nodeSegment(valueAtRequest, true, true, start, end);
+    if (!seg) {
+        showToast('Nekudot: no Hebrew text in the selection');
+        return;
+    }
+    if (isMostlyDotted(seg.middle)) {
+        showToast('Nekudot: this text already has nikud');
+        return;
+    }
 
-    const walker = document.createTreeWalker(
-        root,
-        NodeFilter.SHOW_TEXT,
-        {
-            acceptNode(node) {
-                if (!range.intersectsNode(node))
-                    return NodeFilter.FILTER_REJECT;
-                if (node.parentElement && node.parentElement.closest('script,style,noscript,template'))
-                    return NodeFilter.FILTER_REJECT;
-                return NodeFilter.FILTER_ACCEPT;
-            }
+    const pending = new Map();
+    pending.set(0, {
+        apply(text) {
+            const rollback = applyWithRegistry(
+                el,
+                () => el.value,
+                v => setEditableValue(el, v),
+                valueAtRequest,
+                seg.prefix + text + seg.suffix,
+            );
+            if (rollback)
+                el.setSelectionRange(start, start + text.length);
+            return rollback;
         }
-    );
-
-    const nodes = [];
-    for (let node = walker.nextNode(); node; node = walker.nextNode())
-        nodes.push(node);
-    return nodes;
-}
-
-function showToast(message) {
-    const toast = document.createElement('div');
-    toast.textContent = message;
-    toast.setAttribute('dir', 'rtl');
-    toast.style.cssText = 'position:fixed;top:16px;right:16px;z-index:2147483647;' +
-        'background:#333;color:#fff;padding:10px 16px;border-radius:6px;' +
-        'font:14px sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.35)';
-    document.documentElement.appendChild(toast);
-    setTimeout(() => toast.remove(), 4000);
+    });
+    requestDiacritics([{id: 0, text: seg.middle}], pending);
 }
 
 function setNekudot() {
-    const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) return;
+    // Set by the background when this frame was chosen for having a
+    // selection; consumed once so a later whole-page run isn't affected.
+    const selectionOnly = window.__nekudotSelectionOnly === true;
+    delete window.__nekudotSelectionOnly;
 
-    const range = selection.getRangeAt(0);
-    if (range.collapsed) return;
-
-    // pending: id -> how to put the diacritized middle back into its node
-    const pending = new Map();
-    const segments = [];
-    for (const node of getSelectedNodes(range)) {
-        const seg = nodeSegment(
-            node.textContent,
-            node === range.startContainer,
-            node === range.endContainer,
-            range.startOffset,
-            range.endOffset,
-        );
-        if (!seg) continue;
-        const id = segments.length;
-        pending.set(id, {node, prefix: seg.prefix, suffix: seg.suffix});
-        segments.push({id, text: seg.middle});
+    const editable = activeEditable();
+    if (editable) {
+        setNekudotEditable(editable);
+        return;
     }
-    if (segments.length === 0) return;
 
-    const port = chrome.runtime.connect({name: 'nekudot'});
-    port.onMessage.addListener((msg) => {
-        if (msg.type === 'result') {
-            const entry = pending.get(msg.id);
-            if (entry && entry.node.isConnected)
-                entry.node.textContent = entry.prefix + msg.text + entry.suffix;
-            pending.delete(msg.id);
-        } else if (msg.type === 'done') {
-            port.disconnect();
-        } else if (msg.type === 'fatal') {
-            console.error('Nekudot failed:', msg.reason);
-            showToast('הוספת הניקוד נכשלה');
-            port.disconnect();
+    const {nodes, range} = scopedTextNodes();
+    if (!range) {
+        if (selectionOnly) {
+            // The selection vanished between the probe and this injection —
+            // never silently escalate a selection request to the whole page.
+            showToast('Nekudot: the selection was lost — select the text again');
+            return;
         }
-    });
-    port.postMessage({type: 'diacritize', segments});
+        if (window === window.top)
+            showToast('Nekudot: no selection — adding nikud to the whole page');
+        runWholePage();
+        return;
+    }
+
+    const {pending, segments, alreadyDotted} = collectSegments(nodes, range);
+    if (segments.length === 0) {
+        showToast(alreadyDotted > 0
+            ? 'Nekudot: this text already has nikud'
+            : 'Nekudot: no Hebrew text in the selection');
+        return;
+    }
+    requestDiacritics(segments, pending);
 }
 
 setNekudot();

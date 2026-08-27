@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Frank+Ruhl+Libre:wght@700;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    width: 1280px; height: 800px; margin: 0; overflow: hidden;
+    font-family: Inter, sans-serif;
+    background: radial-gradient(120% 140% at 85% -20%, #1e40af 0%, #172554 45%, #0b1533 100%);
+    color: #fff; position: relative;
+  }
+  .watermark {
+    position: absolute; right: -60px; bottom: -160px;
+    font-family: 'Frank Ruhl Libre'; font-weight: 900; font-size: 560px;
+    color: #ffffff; opacity: 0.04; line-height: 1; pointer-events: none;
+  }
+  .wrap { display: flex; height: 100%; padding: 30px 56px; gap: 48px; align-items: center; position: relative; }
+  .left { width: 440px; flex: none; }
+  .brand { display: flex; align-items: center; gap: 20px; margin-bottom: 34px; }
+  .brand img { width: 92px; height: 92px; border-radius: 21px; box-shadow: 0 12px 32px rgba(0,0,0,.4); }
+  .brand .name { font-size: 54px; font-weight: 800; letter-spacing: -1px; }
+  .brand .heb { font-family: 'Frank Ruhl Libre'; font-weight: 700; font-size: 30px; color: #facc15; margin-top: 3px; }
+  h1 { font-size: 46px; line-height: 1.12; font-weight: 800; letter-spacing: -1px; margin: 0 0 18px; }
+  h1 .accent { color: #facc15; }
+  .sub { font-size: 21px; line-height: 1.5; color: #c7d4f2; margin: 0 0 30px; font-weight: 500;}
+  .badges { display: flex; gap: 10px; flex-wrap: wrap; }
+  .badge {
+    font-size: 15.5px; font-weight: 600; padding: 9px 16px; border-radius: 999px;
+    background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.22); color: #e6edfb;
+  }
+  .right { width: 660px; flex: none; display: flex; flex-direction: column; gap: 0; align-items: stretch; justify-content: center; }
+  .card {
+    background: #fff; border-radius: 16px; padding: 12px 22px;
+    box-shadow: 0 22px 50px rgba(0,0,0,.45);
+    position: relative;
+  }
+  .card.first { margin-top: 16px; }
+  .card img { width: 100%; display: block; }
+  .tag {
+    position: absolute; top: -15px; left: 22px;
+    font-size: 14.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+    padding: 6px 14px; border-radius: 999px; color: #0f172a;
+  }
+  .tag.before { background: #e2e8f0; color: #475569; }
+  .tag.after { background: #facc15; }
+  .arrow-row { display: flex; align-items: center; justify-content: center; gap: 14px; height: 66px; }
+  .arrow-circle {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: #facc15; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 8px 24px rgba(250, 204, 21, .35);
+  }
+  .arrow-circle svg { width: 26px; height: 26px; }
+  .arrow-label { font-size: 17px; font-weight: 600; color: #dbe5fa; }
+</style>
+</head>
+<body>
+<div class="watermark">אָ</div>
+<div class="wrap">
+  <div class="left">
+    <div class="brand">
+      <img src="final/icons/aleph_512.png">
+      <div>
+        <div class="name">Nekudot</div>
+        <div class="heb">נְקֻדּוֹת</div>
+      </div>
+    </div>
+    <h1>Hebrew you can <span class="accent">pronounce</span></h1>
+    <p class="sub">One click adds nikud — vowel marks — to any webpage. Real news headline, before and after&nbsp;→</p>
+    <div class="badges">
+      <span class="badge">Free</span>
+      <span class="badge">Open source</span>
+      <span class="badge">100% on-device</span>
+    </div>
+  </div>
+  <div class="right">
+    <div class="card first">
+      <span class="tag before">Before</span>
+      <img src="raw/ynet-h-before.png">
+    </div>
+    <div class="arrow-row">
+      <div class="arrow-circle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#172554" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M5 13l7 7 7-7"/></svg>
+      </div>
+      <div class="arrow-label">one click on the Nekudot icon</div>
+    </div>
+    <div class="card">
+      <span class="tag after">After</span>
+      <img src="raw/ynet-h-after.png">
+    </div>
+  </div>
+</div>
+</body>
+</html>

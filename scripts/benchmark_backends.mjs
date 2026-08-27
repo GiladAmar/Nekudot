@@ -16,24 +16,33 @@ const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SHORT = 'הם חלק ממאמצי האגודה הלאומית לשמירת הטבע בישראל';
 const LONG = Array(50).fill(SHORT).join(' ');
 
-async function bench(backend) {
-    await tf.setBackend(backend);
-    await tf.ready();
-    const model = await loadModelFromDisk(join(repoRoot, 'model'));
-    await diacritize(tf, model, 'א'); // warm-up
+class BackendUnavailable extends Error {}
 
-    const results = {};
-    for (const [name, text] of [['short', SHORT], ['long', LONG]]) {
-        const times = [];
-        for (let i = 0; i < 3; i++) {
-            const t0 = performance.now();
-            await diacritize(tf, model, text);
-            times.push(performance.now() - t0);
+async function bench(backend) {
+    if (!await tf.setBackend(backend))
+        throw new BackendUnavailable(`setBackend('${backend}') returned false`);
+    await tf.ready();
+    if (tf.getBackend() !== backend)
+        throw new BackendUnavailable(`active backend is ${tf.getBackend()}`);
+
+    const model = await loadModelFromDisk(join(repoRoot, 'model'));
+    try {
+        await diacritize(tf, model, 'א'); // warm-up
+
+        const results = {};
+        for (const [name, text] of [['short', SHORT], ['long', LONG]]) {
+            const times = [];
+            for (let i = 0; i < 3; i++) {
+                const t0 = performance.now();
+                await diacritize(tf, model, text);
+                times.push(performance.now() - t0);
+            }
+            results[name] = Math.min(...times);
         }
-        results[name] = Math.min(...times);
+        return results;
+    } finally {
+        model.dispose();
     }
-    model.dispose();
-    return results;
 }
 
 for (const backend of ['cpu', 'wasm']) {
@@ -41,6 +50,12 @@ for (const backend of ['cpu', 'wasm']) {
         const r = await bench(backend);
         console.log(`${backend.padEnd(5)} short (${SHORT.length} chars): ${r.short.toFixed(0)}ms   long (${LONG.length} chars): ${r.long.toFixed(0)}ms`);
     } catch (e) {
-        console.log(`${backend.padEnd(5)} unavailable: ${e.message}`);
+        if (e instanceof BackendUnavailable) {
+            console.log(`${backend.padEnd(5)} unavailable: ${e.message}`);
+        } else {
+            // a model or inference failure is a real error, not a missing backend
+            console.error(`${backend} benchmark failed:`, e);
+            process.exitCode = 1;
+        }
     }
 }
