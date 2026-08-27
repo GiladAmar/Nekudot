@@ -16,11 +16,10 @@ import {JSDOM} from 'jsdom';
 import {loadModelFromDisk} from './model_loader.mjs';
 import {collectSegments} from '../content_lib.mjs';
 import {collectTextNodes} from '../content_runtime.mjs';
-import {diacritize, diacritize_batch, remove_niqqud} from '../text_encoding.mjs';
+import {diacritize, diacritize_batch, remove_niqqud, chunkSegments} from '../text_encoding.mjs';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 const fixture = process.argv[2] || 'ynet-home.html';
-const SEGMENTS_PER_CHUNK = 32; // mirrors background.js
 
 if (!await tf.setBackend('wasm')) throw new Error('wasm backend unavailable');
 await tf.ready();
@@ -38,8 +37,8 @@ const model = await loadModelFromDisk(join(repoRoot, 'model'));
 
 const t0 = performance.now();
 const packed = [];
-for (let i = 0; i < segments.length; i += SEGMENTS_PER_CHUNK)
-    packed.push(...await diacritize_batch(tf, model, segments.slice(i, i + SEGMENTS_PER_CHUNK)));
+for (const chunk of chunkSegments(segments.map(text => ({text}))))
+    packed.push(...await diacritize_batch(tf, model, chunk.map(s => s.text)));
 const packedMs = performance.now() - t0;
 
 const t1 = performance.now();

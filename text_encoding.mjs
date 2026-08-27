@@ -194,9 +194,33 @@ async function diacritize(tf, model, text) {
     return (await diacritize_batch(tf, model, [text]))[0];
 }
 
+// Group segments into per-predict batches by CHARACTER count, not segment
+// count: a single huge segment (the paste page sends a whole textarea as
+// one) would otherwise slip past a per-segment cap and rebuild the memory
+// blowup this all exists to fix. A chunk always holds at least one segment,
+// so an oversized segment still goes through alone rather than being lost.
+const CHARS_PER_CHUNK = 4000;
+
+function chunkSegments(segments, charsPerChunk = CHARS_PER_CHUNK) {
+    const chunks = [];
+    let chunk = [], chars = 0;
+    for (const segment of segments) {
+        if (chunk.length > 0 && chars + segment.text.length > charsPerChunk) {
+            chunks.push(chunk);
+            chunk = [];
+            chars = 0;
+        }
+        chunk.push(segment);
+        chars += segment.text.length;
+    }
+    if (chunk.length > 0) chunks.push(chunk);
+    return chunks;
+}
+
 export {
     MAXLEN, niqqud_array, dagesh_array, sin_array,
     HEBREW_LETTERS, VALID_LETTERS, SPECIAL_TOKENS, ALL_TOKENS,
     normalize, split_to_rows, can_dagesh, can_sin, can_niqqud,
     remove_niqqud, HEBREW_MARKS_RE, diacritize, diacritize_batch,
+    chunkSegments, CHARS_PER_CHUNK,
 };

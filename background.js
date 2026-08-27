@@ -5,7 +5,7 @@ import {setWasmPaths} from '@tensorflow/tfjs-backend-wasm';
 import '@tensorflow/tfjs-backend-webgl';
 import '@tensorflow/tfjs-backend-cpu';
 import {loadLayersModel} from '@tensorflow/tfjs-layers';
-import {diacritize, diacritize_batch} from './text_encoding.mjs';
+import {diacritize, diacritize_batch, chunkSegments} from './text_encoding.mjs';
 
 // WASM (SIMD) is the primary backend: benchmarked 12-35x faster than the
 // plain CPU backend on this BiLSTM, predictable across machines, and immune
@@ -33,32 +33,9 @@ async function pick_backend() {
     throw new Error('no tfjs backend available');
 }
 
-// Segments are processed in chunks: each chunk is one model.predict call,
-// results stream back per segment, and yielding between chunks keeps the
-// service worker responsive on select-all-sized inputs.
-//
-// Chunking is by CHARACTER count, not segment count: a single huge segment
-// (the paste page sends a whole textarea as one) would otherwise slip past
-// a per-segment cap and rebuild the memory blowup this all exists to fix.
-// A chunk always holds at least one segment, so an oversized segment still
-// goes through alone rather than being dropped.
-const CHARS_PER_CHUNK = 4000;
-
-function chunkSegments(segments) {
-    const chunks = [];
-    let chunk = [], chars = 0;
-    for (const segment of segments) {
-        if (chunk.length > 0 && chars + segment.text.length > CHARS_PER_CHUNK) {
-            chunks.push(chunk);
-            chunk = [];
-            chars = 0;
-        }
-        chunk.push(segment);
-        chars += segment.text.length;
-    }
-    if (chunk.length > 0) chunks.push(chunk);
-    return chunks;
-}
+// Segments are processed in chunks (chunkSegments): each chunk is one
+// model.predict call, results stream back per segment, and yielding between
+// chunks keeps the service worker responsive on select-all-sized inputs.
 
 async function load_model() {
     await pick_backend();
@@ -125,14 +102,17 @@ async function invoke(tab, file) {
             // matching the explicit whole-page menu (and letting no-selection
             // Remove nikud restore iframe work)
             : {tabId: tab.id, allFrames: true};
-        if (frameIds.length > 0) {
+        if (file === 'content.js') {
             // Probe and injection are two round trips; the selection can
             // collapse in between (page script, stray click). Tell the entry
-            // point this was a selection request so it reports the lost
-            // selection instead of silently rewriting the whole frame.
+            // point whether this was a selection request, so it reports the
+            // lost selection instead of silently rewriting the whole frame.
+            // Written unconditionally (not only when true) so a value left
+            // behind by an earlier run can never be read as current.
             await chrome.scripting.executeScript({
                 target,
-                func: () => { window.__nekudotSelectionOnly = true; },
+                func: (selectionOnly) => { window.__nekudotSelectionOnly = selectionOnly; },
+                args: [frameIds.length > 0],
             });
         }
         await chrome.scripting.executeScript({target, files: [file]});
@@ -142,6 +122,10 @@ async function invoke(tab, file) {
 }
 
 chrome.action.onClicked.addListener(tab => invoke(tab, 'content.js'));
+
+// observability (e2e tests): drive the real routing rather than a copy
+globalThis.__nekudotInvoke = invoke;
+globalThis.__nekudotInvokeWholePage = (tab) => invokeWholePage(tab);
 
 chrome.runtime.onInstalled.addListener(() => {
     chrome.contextMenus.removeAll(() => {

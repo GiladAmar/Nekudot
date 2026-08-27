@@ -56,13 +56,14 @@ describe('extension end-to-end in Chrome', {skip: missing}, () => {
     });
 
     // exactly what chrome.action.onClicked -> invoke() does
-    const invokeOn = (page) => sw.evaluate(async (url) => {
+    // Drives the extension's REAL invoke() — frame probe, frameIds narrowing
+    // and the selection-only handshake included — rather than a copy of it,
+    // so routing regressions surface here.
+    const invokeOn = (page, file = 'content.js') => sw.evaluate(async (url, file) => {
         const [tab] = await chrome.tabs.query({url});
-        await chrome.scripting.executeScript({
-            target: {tabId: tab.id, allFrames: true},
-            files: ['content.js'],
-        });
-    }, page.url());
+        if (!tab) throw new Error(`no tab matched ${url} (closed, or host permission missing)`);
+        await globalThis.__nekudotInvoke(tab, file);
+    }, page.url(), file);
 
     // Count over the same node set the violation report walks — innerText
     // only reflects RENDERED text, so results landing in display:none
@@ -292,14 +293,43 @@ describe('extension end-to-end in Chrome', {skip: missing}, () => {
         await sw.evaluate(async (url) => {
             const [tab] = await chrome.tabs.query({url});
             if (!tab) throw new Error(`no tab matched ${url} (closed, or host permission missing)`);
-            await chrome.scripting.executeScript({
-                target: {tabId: tab.id},
-                files: ['content_page.js'],
-            });
+            await globalThis.__nekudotInvokeWholePage(tab);
         }, page.url());
         const {count} = await waitForStable(page, 0, t0);
         assert.ok(count > 500,
             `whole-page mode must dot far more than the selection (got ${count} marks)`);
+        await page.close();
+    });
+
+    test('whole-page still works after a selection-scoped run in the same frame', async () => {
+        // Regression: the background marks selection-bearing frames so a
+        // vanished selection isn't escalated to a whole-page rewrite. If that
+        // marker outlives its run, every later whole-page invocation in the
+        // frame dies with "the selection was lost".
+        const fixture = FIXTURES.includes('hebrewnews-home.html') ? 'hebrewnews-home.html' : FIXTURES[0];
+        const page = await openFixture(fixture);
+
+        // A selection-scoped run (Remove nikud on a selection).
+        await page.evaluate(() => {
+            const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+            let node;
+            while ((node = walker.nextNode()) && !/[א-ת]{4}/.test(node.textContent));
+            const range = document.createRange();
+            range.selectNodeContents(node);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+        });
+        await invokeOn(page, 'content_undo.js');
+        await new Promise(r => setTimeout(r, 1000));
+
+        // Selection collapses, then a whole-page run in the same frame.
+        await page.evaluate(() => window.getSelection().removeAllRanges());
+        const t0 = performance.now();
+        await invokeOn(page);
+        const {count} = await waitForStable(page, 0, t0);
+        assert.ok(count > 500,
+            `whole-page run after a selection-scoped run must still dot the page (got ${count} marks)`);
         await page.close();
     });
 

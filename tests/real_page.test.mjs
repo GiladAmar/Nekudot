@@ -18,10 +18,9 @@ import {loadModelFromDisk} from '../scripts/model_loader.mjs';
 import {FIXTURES} from '../scripts/fixtures_list.mjs';
 import {collectSegments} from '../content_lib.mjs';
 import {collectTextNodes} from '../content_runtime.mjs';
-import {remove_niqqud, diacritize_batch} from '../text_encoding.mjs';
+import {remove_niqqud, diacritize_batch, chunkSegments} from '../text_encoding.mjs';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
-const SEGMENTS_PER_CHUNK = 32; // mirrors background.js
 
 const NIQQUD_RE = /[ְ-ּ]/;
 
@@ -74,8 +73,9 @@ for (const {name: fixtureName} of FIXTURES) {
 
             const t0 = performance.now();
             const results = [];
-            for (let i = 0; i < segments.length; i += SEGMENTS_PER_CHUNK)
-                results.push(...await diacritize_batch(tf, m, segments.slice(i, i + SEGMENTS_PER_CHUNK)));
+            // the production chunking path, not a copy of it
+            for (const chunk of chunkSegments(segments.map(text => ({text}))))
+                results.push(...await diacritize_batch(tf, m, chunk.map(s => s.text)));
             const ms = performance.now() - t0;
 
             assert.equal(results.length, segments.length);
