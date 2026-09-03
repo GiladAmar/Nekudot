@@ -14,7 +14,7 @@ function hasHebrew(text) {
 // learning texts where most words are bare are still processed. Lets a
 // re-run on an infinite-scroll page process only the newly loaded content.
 // (To force re-dotting, use Remove nikud first.)
-function isMostlyDotted(text) {
+function isMostlyDiacritized(text) {
     const words = (text.match(/[\u05D0-\u05EA\u05B0-\u05C2]+/g) || [])
         .filter(w => (w.match(/[\u05D0-\u05EA]/g) || []).length >= 2);
     if (words.length === 0) return false;
@@ -59,7 +59,7 @@ function collectSegments(nodes, range) {
                 node === range.endContainer, range.startOffset, range.endOffset)
             : nodeSegment(node.textContent, false, false, 0, 0);
         if (!seg) continue;
-        if (isMostlyDotted(seg.middle)) {
+        if (isMostlyDiacritized(seg.middle)) {
             alreadyDotted++;
             continue;
         }
@@ -72,4 +72,4 @@ function collectSegments(nodes, range) {
     return {pending, segments, alreadyDotted};
 }
 
-export {hasHebrew, isMostlyDotted, segmentRange, nodeSegment, collectSegments};
+export {hasHebrew, isMostlyDiacritized, segmentRange, nodeSegment, collectSegments};

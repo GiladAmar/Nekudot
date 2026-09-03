@@ -1,7 +1,7 @@
 // Diacritize entry point. The background's frame probe enforces scope:
 // this file is injected into the frames that have a selection, or — when
 // no frame has one — into every reachable frame for whole-page mode.
-import {nodeSegment, isMostlyDotted, collectSegments} from './content_lib.mjs';
+import {nodeSegment, isMostlyDiacritized, collectSegments} from './content_lib.mjs';
 import {scopedTextNodes, requestDiacritics, applyWithRegistry, activeEditable, setEditableValue, showToast, runWholePage} from './content_runtime.mjs';
 
 // Selection inside an <input>/<textarea>: splice the diacritized text into
@@ -15,7 +15,7 @@ function setNekudotEditable(el) {
         showToast('Nekudot: no Hebrew text in the selection');
         return;
     }
-    if (isMostlyDotted(seg.middle)) {
+    if (isMostlyDiacritized(seg.middle)) {
         showToast('Nekudot: this text already has nikud');
         return;
     }
