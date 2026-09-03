@@ -1,6 +1,6 @@
 import {test, describe} from 'node:test';
 import assert from 'node:assert/strict';
-import {hasHebrew, isMostlyDotted, segmentRange, nodeSegment, collectSegments} from '../content_lib.mjs';
+import {hasHebrew, isMostlyDiacritized, segmentRange, nodeSegment, collectSegments} from '../content_lib.mjs';
 import {applyWithRegistry} from '../content_runtime.mjs';
 
 // content_runtime's registry hangs off `window`
@@ -18,25 +18,25 @@ describe('hasHebrew', () => {
     });
 });
 
-describe('isMostlyDotted', () => {
+describe('isMostlyDiacritized', () => {
     test('undotted Hebrew is not skipped', () => {
-        assert.equal(isMostlyDotted('שלום עולם, זהו טקסט רגיל'), false);
+        assert.equal(isMostlyDiacritized('שלום עולם, זהו טקסט רגיל'), false);
     });
     test('fully dotted Hebrew is skipped', () => {
-        assert.equal(isMostlyDotted('שָׁלוֹם עוֹלָם'), true);
+        assert.equal(isMostlyDiacritized('שָׁלוֹם עוֹלָם'), true);
     });
     test('lightly dotted learning text is still processed', () => {
         // one dotted word inside a long undotted sentence
-        assert.equal(isMostlyDotted('שָׁלוֹם is one word inside טקסט ארוך בלי ניקוד בכלל כאן'), false);
+        assert.equal(isMostlyDiacritized('שָׁלוֹם is one word inside טקסט ארוך בלי ניקוד בכלל כאן'), false);
     });
     test('judged per word: a dotted short word next to bare words is processed', () => {
         // per-letter ratios misfire here (1 mark / 4 letters); per-word is 1/2
-        assert.equal(isMostlyDotted('עַל זה'), false);
-        assert.equal(isMostlyDotted('בְּסֵדֶר גמור לגמרי בלי כלום'), false);
+        assert.equal(isMostlyDiacritized('עַל זה'), false);
+        assert.equal(isMostlyDiacritized('בְּסֵדֶר גמור לגמרי בלי כלום'), false);
     });
     test('no Hebrew means nothing to skip', () => {
-        assert.equal(isMostlyDotted('hello world 123'), false);
-        assert.equal(isMostlyDotted(''), false);
+        assert.equal(isMostlyDiacritized('hello world 123'), false);
+        assert.equal(isMostlyDiacritized(''), false);
     });
 });
 

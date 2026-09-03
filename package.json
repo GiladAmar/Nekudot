@@ -18,8 +18,8 @@
   "scripts": {
     "test": "node --test \"tests/**/*.test.mjs\"",
     "copy": "cp manifest.json dist/ && cp -R images dist/images && node scripts/quantize_model.mjs model dist/model && mkdir -p dist/wasm && cp node_modules/@tensorflow/tfjs-backend-wasm/dist/tfjs-backend-wasm.wasm node_modules/@tensorflow/tfjs-backend-wasm/dist/tfjs-backend-wasm-simd.wasm dist/wasm/",
-    "prebuild": "rm -rf dist",
-    "prebuild-dev": "rm -rf dist",
+    "prebuild": "rm -rf dist .parcel-cache",
+    "prebuild-dev": "rm -rf dist .parcel-cache",
     "build": "parcel build content.js content_page.js content_undo.js background.js paste.html --no-source-maps --dist-dir dist && npm run copy",
     "build-dev": "NODE_ENV=development parcel build content.js content_page.js content_undo.js background.js paste.html --dist-dir dist && npm run copy",
     "bench": "node scripts/benchmark_backends.mjs",

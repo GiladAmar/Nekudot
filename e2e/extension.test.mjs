@@ -22,6 +22,9 @@ const DIST = join(repoRoot, 'dist');
 const FIXTURES = ALL_FIXTURES.map(f => f.name)
     .filter(f => existsSync(join(repoRoot, 'tests', 'fixtures', f)));
 
+// The first real (non-static-regression) fixture — a full live page snapshot.
+const LIVE = FIXTURES.find(f => f !== 'regression-page.html') || FIXTURES[0];
+
 const MARKS = '\\u05B0-\\u05BC\\u05C1\\u05C2';
 
 const missing = FIXTURES.length === 0 ? 'fixtures missing — run `npm run fixtures`'
@@ -241,7 +244,7 @@ describe('extension end-to-end in Chrome', {skip: missing}, () => {
     }
 
     test('infinite-scroll re-run: only newly loaded content is processed', async () => {
-        const fixture = FIXTURES.includes('hebrewnews-home.html') ? 'hebrewnews-home.html' : FIXTURES[0];
+        const fixture = LIVE;
         const page = await openFixture(fixture);
 
         // First full run.
@@ -294,7 +297,7 @@ describe('extension end-to-end in Chrome', {skip: missing}, () => {
         // Regression: the "Add nikud to the whole page" menu item used to
         // route through the selection probe, so any leftover selection
         // silently narrowed the scope to just that selection.
-        const fixture = FIXTURES.includes('hebrewnews-home.html') ? 'hebrewnews-home.html' : FIXTURES[0];
+        const fixture = LIVE;
         const page = await openFixture(fixture);
 
         // Leave a small selection active, then invoke the whole-page entry
@@ -327,7 +330,7 @@ describe('extension end-to-end in Chrome', {skip: missing}, () => {
         // vanished selection isn't escalated to a whole-page rewrite. If that
         // marker outlives its run, every later whole-page invocation in the
         // frame dies with "the selection was lost".
-        const fixture = FIXTURES.includes('hebrewnews-home.html') ? 'hebrewnews-home.html' : FIXTURES[0];
+        const fixture = LIVE;
         const page = await openFixture(fixture);
 
         // A selection-scoped run (Remove nikud on a selection).
@@ -358,7 +361,7 @@ describe('extension end-to-end in Chrome', {skip: missing}, () => {
     test('partially-dotted node: the rest of the node can still be dotted', async () => {
         // Regression for the registry-skip bug: dotting one sentence of a
         // node must not block dotting the rest of that same node later.
-        const fixture = FIXTURES[0];
+        const fixture = LIVE;
         const page = await openFixture(fixture);
         const nodeText = 'משפט ראשון לגמרי רגיל. משפט שני נפרד לחלוטין.';
         await page.evaluate((nodeText) => {
