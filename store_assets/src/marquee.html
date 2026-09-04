@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=Frank+Ruhl+Libre:wght@700;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    width: 1400px; height: 560px; margin: 0; overflow: hidden;
+    font-family: Inter, sans-serif;
+    background: radial-gradient(120% 150% at 78% -25%, #1e40af 0%, #172554 48%, #0b1533 100%);
+    color: #fff; position: relative;
+  }
+  .watermark {
+    position: absolute; right: -60px; bottom: -150px;
+    font-family: 'Frank Ruhl Libre'; font-weight: 900; font-size: 560px;
+    color: #fff; opacity: 0.05; line-height: 1; pointer-events: none;
+  }
+  .wrap {
+    position: relative; height: 100%;
+    display: flex; align-items: center;
+    padding: 0 88px; gap: 72px;
+  }
+  .left { flex: 0 0 auto; max-width: 620px; }
+  .brand { display: flex; align-items: center; gap: 26px; margin-bottom: 30px; }
+  .brand img { width: 104px; height: 104px; border-radius: 24px; box-shadow: 0 14px 34px rgba(0,0,0,.45); }
+  .name { font-size: 66px; font-weight: 800; letter-spacing: -1.2px; }
+  .tag { font-size: 33px; font-weight: 600; color: #c7d4f2; line-height: 1.35; }
+  .tag b { color: #fff; font-weight: 700; }
+  .right { flex: 1 1 auto; display: flex; justify-content: center; }
+  .demo {
+    display: flex; align-items: center; gap: 30px; direction: ltr;
+    background: #fff; border-radius: 24px; padding: 34px 46px;
+    box-shadow: 0 26px 60px rgba(0,0,0,.45);
+  }
+  .demo .heb { font-family: 'Frank Ruhl Libre'; font-weight: 700; font-size: 84px; color: #0f172a; line-height: 1.25; unicode-bidi: isolate; }
+  .demo .heb.dotted { color: #1d4ed8; }
+  .demo svg { width: 52px; height: 52px; flex: 0 0 auto; }
+  .pill {
+    position: absolute; left: 88px; bottom: 46px;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 20px; font-weight: 600; color: #93c5fd;
+  }
+  .pill .dot { width: 9px; height: 9px; border-radius: 50%; background: #facc15; }
+</style>
+</head>
+<body>
+<div class="watermark">אָ</div>
+<div class="wrap">
+  <div class="left">
+    <div class="brand">
+      <img src="../icons/aleph_512.png">
+      <div class="name">Nekudot</div>
+    </div>
+    <div class="tag">One click adds <b>nikud</b> — Hebrew vowel<br>marks — to any webpage.</div>
+  </div>
+  <div class="right">
+    <div class="demo">
+      <span class="heb">עברית</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="#facc15" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16M13 5l7 7-7 7"/></svg>
+      <span class="heb dotted">עִבְרִית</span>
+    </div>
+  </div>
+</div>
+<div class="pill"><span class="dot"></span> Private &amp; on-device · no data leaves your browser</div>
+</body>
+</html>
