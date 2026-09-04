@@ -1,0 +1,33 @@
+Chrome Web Store — Permission justifications
+=============================================
+
+contextMenus
+------------
+Nekudot uses the contextMenus permission solely to add its own right-click
+menu entries so users can invoke the extension without opening the toolbar.
+It registers four static items: "Add nikud" (on selected Hebrew text),
+"Add nikud to the whole page," "Remove nikud," and "Open paste page." Each
+item simply triggers Nekudot's diacritization on the current selection or
+page. The permission does not read page content, does not collect or transmit
+any data, and only creates these fixed menu items — all processing happens
+locally, on-device.
+
+activeTab
+---------
+Nekudot uses activeTab so it can act on the page the user is currently viewing,
+and only in response to an explicit user action — clicking the toolbar icon,
+choosing one of its right-click menu items, or pressing the keyboard shortcut
+(Alt+Shift+N). This scopes the extension to the single tab the user chose to run
+it on, rather than requesting broad host permissions for every site. Nekudot has
+no background access to any page; it never runs on a tab the user did not
+explicitly invoke it on.
+
+scripting
+---------
+Nekudot uses scripting to inject its content script into the active tab when the
+user invokes it, so it can read the selected Hebrew text (or the page's text),
+add the missing vowel marks, and write the diacritized text back into the page —
+and to remove nikud again on request. It is also used briefly to detect whether
+the user has an active text selection so the extension knows whether to act on
+the selection or the whole page. All diacritization runs locally, on-device; no
+page content is collected or sent anywhere.
