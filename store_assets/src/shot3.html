@@ -30,7 +30,7 @@
   .exticon img { width: 26px; height: 26px; border-radius: 6px; display: block;
     outline: 3px solid #facc15; outline-offset: 2px; }
   .page-wrap { height: 480px; overflow: hidden; position: relative; }
-  .page { width: 100%; display: block; filter: saturate(.92); margin-top: -86px; }
+  .page { width: 100%; display: block; filter: saturate(.92); margin-top: 0; }
   .page-dim { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(23,37,84,.06), rgba(23,37,84,.28)); }
 
   .card {
@@ -50,8 +50,12 @@
   .menu .sep { border-top: 1px solid #e2e8f0; margin: 6px 0; }
   .cursor { position: absolute; left: 296px; top: 172px; width: 26px; z-index: 10; }
   /* shortcut card */
-  .keys { right: 60px; top: 130px; width: 330px; padding-bottom: 18px; }
+  .keys { right: 60px; top: 130px; width: 350px; padding-bottom: 18px; }
   .keyrow { display: flex; gap: 9px; padding: 8px 18px 4px; align-items: center; }
+  .oslabel {
+    width: 44px; flex: none; font-size: 12.5px; font-weight: 800;
+    color: #94a3b8; letter-spacing: .06em; text-transform: uppercase;
+  }
   .key {
     min-width: 46px; height: 46px; border-radius: 9px; background: #f1f5f9;
     border: 1.5px solid #cbd5e1; border-bottom-width: 4px;
@@ -92,11 +96,11 @@
       <span class="dot" style="background:#f87171"></span>
       <span class="dot" style="background:#fbbf24"></span>
       <span class="dot" style="background:#34d399"></span>
-      <div class="url">🔒 ynet.co.il</div>
+      <div class="url">🔒 he.wikipedia.org</div>
       <div class="exticon"><img src="final/icons/aleph_512.png"></div>
     </div>
     <div class="page-wrap">
-      <img class="page" src="raw/ynet-after.png">
+      <img class="page" src="raw/wiki-shot3-after.png">
       <div class="page-dim"></div>
     </div>
   </div>
@@ -117,11 +121,18 @@
   <div class="card keys">
     <div class="head">3 · Or press the shortcut</div>
     <div class="keyrow">
-      <span class="key">⌘</span><span class="plus">+</span>
+      <span class="oslabel">Mac</span>
+      <span class="key">⌥</span><span class="plus">+</span>
       <span class="key">⇧</span><span class="plus">+</span>
-      <span class="key">Y</span>
+      <span class="key">N</span>
     </div>
-    <div class="keynote">Ctrl+Shift+Y on Windows · remappable in Chrome</div>
+    <div class="keyrow">
+      <span class="oslabel">Win</span>
+      <span class="key">Alt</span><span class="plus">+</span>
+      <span class="key">⇧</span><span class="plus">+</span>
+      <span class="key">N</span>
+    </div>
+    <div class="keynote">Remappable at chrome://extensions/shortcuts</div>
   </div>
 
   <div class="footer">Selection only? <span class="gold">Highlight text first</span> — only the selection gets nikud</div>

@@ -1,6 +1,6 @@
 {
   "name": "nekudot",
-  "version": "2.0",
+  "version": "2.0.1",
   "description": "Add 'nekudot' or diacritics to Hebrew text.",
   "keywords": [
     "tensorflow",

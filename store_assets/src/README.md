@@ -20,6 +20,9 @@ work without re-discovering it.
   4. Paste page with real dotted output + 1-2-3 steps
   5. Privacy/speed card grid with the measured stats
 - `promo-tile-440x280.png` — brand tile with עברית → עִבְרִית demo chip.
+- `demo.mp4` / `demo.gif` — ~14s screen recording of whole-page nikud on the
+  Hebrew Wikipedia "עברית" article (1280×800 MP4, 760px looping GIF, both well
+  under 5 MB). Produced by `demo.mjs`; see the pipeline note below.
 - `icons/aleph_{16,32,48,128,512}.png` — the extension/store icon.
   Adopt in the extension with `cp store_assets/icons/aleph_{16,32,48,128}.png images/`.
 
@@ -38,8 +41,24 @@ work without re-discovering it.
 3. **Icon** (`icon-final.html` + `make-icons.mjs`): renders the SVG icon at
    512 px and lanczos-downscales to every size. `render.mjs` is a generic
    HTML→PNG helper (used for icon variant sheets).
+4. **Demo** (`demo.mjs`): loads the built extension in real Chrome, runs
+   whole-page nikud on the עברית article, records a fixed-cadence screenshot
+   loop (CDP screencast drops frames in headless — don't use it), and encodes
+   `demo.mp4` + `demo.gif` with ffmpeg. Frame timing is preserved via a concat
+   file of real per-frame durations, resampled to a constant fps on encode.
 
 ## Hard-won gotchas (this is the time-saving part)
+
+- **`raw/` and `final/` are untracked and get clobbered.** The Arabic port
+  reuses these same dirs with `wiki-ar-*`/`alif_*` assets, so the Hebrew
+  captures the `shot*.html` reference (`raw/ynet-after.png`, `raw/wiki-*.png`,
+  `final/icons/aleph_512.png`) can silently disappear. Before re-rendering any
+  Hebrew shot, regenerate the raw captures (`capture*.mjs`) and
+  `cp ../icons/aleph_512.png final/icons/`.
+- **Advertised keyboard shortcut is `Alt+Shift+N`** (⌥+Shift+N on Mac), matching
+  the manifest `commands` entry. `⌘+Shift+Y` was deliberately avoided (macOS
+  reserves it for Sticky Notes) — keep `shot3.html` and `store-description.txt`
+  on `Alt+Shift+N`.
 
 - **Paths**: every script hardcodes two absolute paths — the repo/worktree
   root (`REPO`) and the output/scratch dir. Fix those first; nothing else
