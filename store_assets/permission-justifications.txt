@@ -5,12 +5,14 @@ contextMenus
 ------------
 Nekudot uses the contextMenus permission solely to add its own right-click
 menu entries so users can invoke the extension without opening the toolbar.
-It registers four static items: "Add nikud" (on selected Hebrew text),
-"Add nikud to the whole page," "Remove nikud," and "Open paste page." Each
-item simply triggers Nekudot's diacritization on the current selection or
-page. The permission does not read page content, does not collect or transmit
-any data, and only creates these fixed menu items — all processing happens
-locally, on-device.
+It registers a few static items: "Add nikud" (on selected Hebrew text),
+"Add nikud to the whole page," "Remove nikud," and "Open paste page," which
+trigger Nekudot's diacritization on the current selection or page, plus two
+toolbar-icon items ("Rate Nekudot" and "View source on GitHub") that simply
+open a tab to the store listing or the project's public repository. The
+permission does not read page content, does not collect or transmit any data,
+and only creates these fixed menu items — all processing happens locally,
+on-device.
 
 activeTab
 ---------

@@ -150,8 +150,22 @@ chrome.runtime.onInstalled.addListener(() => {
             title: 'Open paste page (works in Google Docs etc.)',
             contexts: ['action'],
         });
+        chrome.contextMenus.create({
+            id: 'nekudot-rate',
+            title: 'Rate Nekudot ⭐ (write a review)',
+            contexts: ['action'],
+        });
+        chrome.contextMenus.create({
+            id: 'nekudot-github',
+            title: 'View source on GitHub',
+            contexts: ['action'],
+        });
     });
 });
+
+// Links opened from the toolbar-icon menu.
+const REVIEW_URL = 'https://chromewebstore.google.com/detail/nekudot/lifcgpfijhjloceldomdfbkjghkdnenk/reviews';
+const REPO_URL = 'https://github.com/GiladAmar/Nekudot';
 
 // Explicit whole-page request: no selection probe — a stray surviving
 // selection anywhere in the tab must not narrow the scope the user asked for.
@@ -175,6 +189,10 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
         invokeWholePage(tab);
     else if (info.menuItemId === 'nekudot-paste-page')
         chrome.tabs.create({url: chrome.runtime.getURL('paste.html')});
+    else if (info.menuItemId === 'nekudot-rate')
+        chrome.tabs.create({url: REVIEW_URL});
+    else if (info.menuItemId === 'nekudot-github')
+        chrome.tabs.create({url: REPO_URL});
     else
         invoke(tab, 'content.js');
 });
