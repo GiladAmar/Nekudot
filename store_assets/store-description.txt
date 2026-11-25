@@ -1,11 +1,13 @@
-Learning Hebrew? Then you know the problem: real-world Hebrew — news sites, Wikipedia, blogs, song lyrics — is written without nekudot (vowel marks), so there's no way to tell how a new word is pronounced. Nekudot fixes that in one click.
+Add nikud (niqqud — Hebrew vowel marks / diacritics, ניקוד) to any web page in one click. Nekudot is a free מנקד that dots Hebrew text right where you're reading it.
+
+Learning Hebrew? Then you know the problem: real-world Hebrew — news sites, Wikipedia, blogs, song lyrics — is written without nikud, so there's no way to tell how a new word is pronounced. Nekudot fixes that in one click.
 
 Highlight some Hebrew text and click the Nekudot icon: the text is rewritten in place with full nikud. Click with nothing selected and the whole page gets nikud, with results appearing on screen as they are computed — a full news homepage takes just a few seconds.
 
 WAYS TO USE IT
 • Click the toolbar icon — nikud for the selection, or the whole page if nothing is selected.
 • Right-click → "Add nikud", or "Add nikud to the whole page".
-• Keyboard shortcut: Ctrl+Shift+Y (⌘+Shift+Y on Mac).
+• Keyboard shortcut: Alt+Shift+N (Windows/Linux) or ⌥+Shift+N (Mac) — remappable at chrome://extensions/shortcuts.
 • "Remove nikud" restores the original text exactly.
 • Works inside text boxes too — Gmail compose, comment fields, online editors.
 • Google Docs or Word Online? Pages like these can't be edited by extensions, so Nekudot includes a paste page: right-click the toolbar icon → "Open paste page", then paste, click, and copy the dotted text back.
@@ -22,6 +24,8 @@ KNOWN ISSUES
 • Google Docs and Word Online can't be edited in place (that's a Chrome limitation, not a Nekudot one) — use the built-in paste page instead.
 
 Nekudot is free, always will be, and open source: github.com/GiladAmar/Nekudot. If you're curious how a Chrome extension runs a neural network with TensorFlow.js, take a peek.
+
+Enjoying it? Please leave a ⭐ rating and a quick review — it's the single biggest thing you can do to help other Hebrew learners find Nekudot.
 
 If it helps you, you can support further development at paypal.me/GiladAmar. If not, no worries.
 

@@ -1,8 +1,8 @@
 {
-  "name": "Nekudot",
-  "version": "2.0",
-  "description": "Add `nekudot' to hebrew text.",
-  "homepage_url": "https://github.com/GiladAmar",
+  "name": "Nekudot — Hebrew Nikud (vowel marks) on any page",
+  "version": "2.0.1",
+  "description": "One-click nikud (niqqud / Hebrew vowel marks) on any page. Runs on-device — private, offline, no account. ניקוד לכל טקסט",
+  "homepage_url": "https://github.com/GiladAmar/Nekudot",
   "manifest_version": 3,
   "background": {
     "service_worker": "background.js"

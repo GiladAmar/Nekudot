@@ -1,6 +1,19 @@
 # What's new in Nekudot
 
-## Version 2.0 (unreleased)
+## Version 2.0.1 (2026-09-07)
+
+### New
+
+- **Two more toolbar-icon menu items**: right-click the Nekudot icon for
+  "Rate Nekudot ⭐" (opens the Chrome Web Store review page) and "View source
+  on GitHub" (opens the project repository).
+
+### Fixed
+
+- **The extension's homepage link now points to the project repository**
+  (github.com/GiladAmar/Nekudot) instead of the author's profile page.
+
+## Version 2.0 (2026-09-07)
 
 ### Fixed
 
